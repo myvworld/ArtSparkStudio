@@ -22,8 +22,8 @@ interface GalleryArtwork {
   createdAt: string;
   username: string;
   userId: number;
-  averageRating: number;
-  commentCount: number;
+  averageRating: number | undefined;
+  commentCount: number | undefined;
 }
 
 export default function Gallery() {
@@ -34,6 +34,9 @@ export default function Gallery() {
 
   const { data: artworks, isLoading } = useQuery<GalleryArtwork[]>({
     queryKey: ["/api/gallery"],
+    onSuccess: (data) => {
+      console.log('Gallery data:', data); // Add logging to check data format
+    },
   });
 
   const handleComment = async (artworkId: number) => {
@@ -108,11 +111,13 @@ export default function Gallery() {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center">
                       <Star className="w-4 h-4 mr-1" />
-                      {artwork.averageRating.toFixed(1)}
+                      {typeof artwork.averageRating === 'number'
+                        ? artwork.averageRating.toFixed(1)
+                        : '0.0'}
                     </div>
                     <div className="flex items-center">
                       <MessageSquare className="w-4 h-4 mr-1" />
-                      {artwork.commentCount}
+                      {artwork.commentCount || 0}
                     </div>
                   </div>
                 </div>
@@ -159,7 +164,7 @@ export default function Gallery() {
                     disabled={isRating}
                     onClick={() => selectedArtwork && handleRating(selectedArtwork.id, score)}
                   >
-                    <Star className={`w-4 h-4 ${selectedArtwork && score <= selectedArtwork.averageRating ? 'fill-current' : ''}`} />
+                    <Star className={`w-4 h-4 ${selectedArtwork && score <= (selectedArtwork.averageRating || 0) ? 'fill-current' : ''}`} />
                   </Button>
                 ))}
               </div>

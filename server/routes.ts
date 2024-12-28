@@ -56,7 +56,7 @@ export function registerRoutes(app: Express): Server {
           createdAt: artworks.createdAt,
           username: users.username,
           userId: users.id,
-          averageRating: sql<number>`COALESCE(AVG(${ratings.score}), 0)`,
+          averageRating: sql<number>`CAST(COALESCE(AVG(${ratings.score}), 0) AS DECIMAL(10,1))`,
           commentCount: sql<number>`COUNT(DISTINCT ${comments.id})`,
         })
         .from(artworks)
