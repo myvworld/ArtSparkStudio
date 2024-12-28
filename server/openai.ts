@@ -8,22 +8,29 @@ export interface ArtAnalysis {
     current: string;
     influences: string[];
     similarArtists: string[];
+    period: string;
+    movement: string;
   };
   composition: {
     structure: string;
     balance: string;
     colorTheory: string;
     perspective: string;
+    focusPoints: string[];
+    dynamicElements: string[];
   };
   technique: {
     medium: string;
     execution: string;
     skillLevel: string;
+    uniqueApproaches: string[];
+    materialUsage: string;
   };
   strengths: string[];
   improvements: string[];
   detailedFeedback: string;
   technicalSuggestions: string[];
+  learningResources: string[];
 }
 
 export async function analyzeArtwork(
@@ -31,35 +38,42 @@ export async function analyzeArtwork(
   goals?: string
 ): Promise<ArtAnalysis> {
   try {
-    const prompt = `As an expert art critic and educator, analyze this artwork in detail. ${
-      goals ? `The artist's goals are: ${goals}` : ""
+    const prompt = `As an expert art critic and educator, provide a comprehensive analysis of this artwork. ${
+      goals ? `Consider the artist's goals: ${goals}` : ""
     }
 
-Please provide a comprehensive analysis in JSON format with the following structure:
+Please provide a detailed analysis in JSON format with the following structure:
 {
   "style": {
-    "current": "Main artistic style",
-    "influences": ["List of artistic influences"],
-    "similarArtists": ["Artists with similar styles"]
+    "current": "Primary artistic style",
+    "influences": ["Notable artistic influences"],
+    "similarArtists": ["Artists with comparable styles"],
+    "period": "Historical or contemporary period",
+    "movement": "Associated art movement"
   },
   "composition": {
-    "structure": "Analysis of compositional structure",
-    "balance": "Assessment of visual balance",
-    "colorTheory": "Color usage and harmony analysis",
-    "perspective": "Evaluation of perspective and depth"
+    "structure": "Detailed analysis of compositional structure",
+    "balance": "Assessment of visual weight and balance",
+    "colorTheory": "Analysis of color harmony and relationships",
+    "perspective": "Evaluation of depth and spatial relationships",
+    "focusPoints": ["Key areas that draw attention"],
+    "dynamicElements": ["Elements creating movement or flow"]
   },
   "technique": {
-    "medium": "Identified medium and materials",
-    "execution": "Technical execution assessment",
-    "skillLevel": "Current skill level evaluation"
+    "medium": "Identified materials and tools",
+    "execution": "Technical proficiency assessment",
+    "skillLevel": "Current skill evaluation",
+    "uniqueApproaches": ["Notable technical choices"],
+    "materialUsage": "How materials were applied"
   },
-  "strengths": ["3-5 key strengths"],
-  "improvements": ["3-5 suggested improvements"],
-  "detailedFeedback": "Comprehensive feedback incorporating goals",
-  "technicalSuggestions": ["Specific technical recommendations"]
+  "strengths": ["3-5 notable achievements"],
+  "improvements": ["3-5 areas for growth"],
+  "detailedFeedback": "Comprehensive analysis incorporating goals",
+  "technicalSuggestions": ["Specific technique improvements"],
+  "learningResources": ["Recommended tutorials, books, or courses"]
 }
 
-Focus on being constructive and specific in your feedback. Include references to art principles and techniques where relevant.`;
+Focus on constructive, actionable feedback with specific references to art principles and techniques.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -80,7 +94,9 @@ Focus on being constructive and specific in your feedback. Include references to
       response_format: { type: "json_object" },
     });
 
-    return JSON.parse(response.choices[0].message.content) as ArtAnalysis;
+    const result = JSON.parse(response.choices[0].message.content);
+    console.log("Analysis completed successfully");
+    return result;
   } catch (error) {
     console.error("OpenAI API error:", error);
     throw new Error("Failed to analyze artwork");
