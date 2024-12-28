@@ -14,39 +14,46 @@ interface StripeConfig {
 
 const SUBSCRIPTION_TIERS = {
   free: {
-    name: "Free",
-    price: "$0/month",
+    name: "Spark Starter",
+    price: "Free",
     features: [
-      "3 artwork analyses per month",
+      "Upload up to 5 images/month",
       "Basic AI feedback",
-      "Community gallery access",
-      "Standard support",
+      "General composition improvements",
+      "Basic color and style analysis",
+      "Save and view feedback history",
     ],
     priceId: null,
   },
   basic: {
-    name: "Artist",
-    price: "$14.99/month",
+    name: "Creative Canvas",
+    price: "$30/month",
+    yearlyPrice: "$300/year (Save $60)",
     features: [
-      "25 artwork analyses per month",
+      "Upload up to 500 images/month",
       "Detailed AI feedback & suggestions",
-      "Style comparison analysis",
-      "Progress tracking dashboard",
-      "Priority support",
+      "In-depth composition analysis",
+      "Color and style recommendations",
+      "Behavioral insights tracking",
+      "Organized feedback library",
+      "Basic community features",
+      "Peer review access",
     ],
     priceId: undefined, // Will be set from server config
   },
   pro: {
-    name: "Professional",
-    price: "$39.99/month",
+    name: "Visionary",
+    price: "$60/month",
+    yearlyPrice: "$600/year (Save $120)",
     features: [
-      "Unlimited artwork analyses",
-      "Advanced AI feedback with custom focus",
-      "Comprehensive style evolution tracking",
+      "Upload up to 1,500 images/month",
+      "Advanced AI feedback system",
+      "Marketability analysis",
       "Portfolio optimization insights",
-      "Real-time collaboration tools",
-      "24/7 premium support",
-      "Custom API access",
+      "Priority image processing",
+      "Private feedback groups",
+      "Professional networking tools",
+      "Advanced community features",
     ],
     priceId: undefined, // Will be set from server config
   },
@@ -101,7 +108,7 @@ export default function Subscription() {
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-4">Choose Your Creative Journey</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Select the perfect plan to accelerate your artistic growth with AI-powered feedback and analysis.
+          Unlock the full potential of your artistic journey with our AI-powered feedback and analysis tools.
         </p>
         <div className="mt-4 text-sm text-yellow-600 bg-yellow-50 p-2 rounded inline-block">
           🚧 Preview Version - Payment Integration Coming Soon 🚧
@@ -118,11 +125,18 @@ export default function Subscription() {
           >
             <CardHeader>
               <CardTitle>
-                <div className="flex justify-between items-baseline">
-                  <span>{tier.name}</span>
-                  <span className="text-xl font-normal text-muted-foreground">
-                    {tier.price}
-                  </span>
+                <div className="flex flex-col gap-2">
+                  <span className="text-xl">{tier.name}</span>
+                  <div className="space-y-1">
+                    <div className="text-xl font-normal text-muted-foreground">
+                      {tier.price}
+                    </div>
+                    {tier.yearlyPrice && (
+                      <div className="text-sm text-green-600">
+                        {tier.yearlyPrice}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardTitle>
             </CardHeader>
