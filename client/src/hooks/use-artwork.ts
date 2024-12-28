@@ -76,10 +76,12 @@ export function useArtwork() {
   });
 
   const toggleVisibilityMutation = useMutation({
-    mutationFn: async (artworkId: number) => {
+    mutationFn: async ({ artworkId, isPublic }: { artworkId: number; isPublic: boolean }) => {
       const response = await fetch(`/api/artwork/${artworkId}/visibility`, {
         method: "PATCH",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPublic: !isPublic })
       });
 
       if (!response.ok) {

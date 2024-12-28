@@ -161,7 +161,15 @@ export const styleComparisonRelations = relations(styleComparisons, ({ one }) =>
 // Schema types
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
-export type User = typeof users.$inferSelect;
+export type User = {
+  id: number;
+  username: string;
+  email: string;
+  subscriptionTier: string;
+  stripeCustomerId?: string | null;
+  createdAt: Date;
+  password: string;
+};
 export type NewUser = typeof users.$inferInsert;
 
 export const insertArtworkSchema = createInsertSchema(artworks);

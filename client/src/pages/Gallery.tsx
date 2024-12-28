@@ -23,8 +23,8 @@ interface GalleryArtwork {
   createdAt: string;
   username: string;
   userId: number;
-  averageRating: number | null;
-  commentCount: number;
+  averageRating: string | null;
+  commentCount: string | null;
   userRating: number | null;
 }
 
@@ -44,9 +44,20 @@ export default function Gallery() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
 
-  const { data: artworks, isLoading, refetch } = useQuery<GalleryArtwork[]>({
+  const { data: artworks = [], isLoading, refetch } = useQuery<GalleryArtwork[]>({
     queryKey: ["/api/gallery"],
-    onError: (error) => {
+    queryFn: async () => {
+      const response = await fetch("/api/gallery", {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onError: (error: Error) => {
       console.error('Error fetching gallery:', error);
       toast({
         title: "Error",
@@ -66,8 +77,8 @@ export default function Gallery() {
         description: "Comment added successfully",
       });
       setComment("");
-      refetch(); 
-      setSelectedArtwork(null); 
+      refetch();
+      setSelectedArtwork(null);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -84,7 +95,7 @@ export default function Gallery() {
         title: "Success",
         description: "Rating submitted successfully",
       });
-      refetch(); 
+      refetch();
 
       if (selectedArtwork) {
         setSelectedArtwork({
@@ -101,7 +112,7 @@ export default function Gallery() {
     }
   };
 
-  const formatRating = (rating: number | null | undefined): string => {
+  const formatRating = (rating: string | number | null | undefined): string => {
     if (rating === null || rating === undefined) return '0.0';
     return Number(rating).toFixed(1);
   };
@@ -184,7 +195,7 @@ export default function Gallery() {
                     </div>
                     <div className="flex items-center">
                       <MessageSquare className="w-4 h-4 mr-1" />
-                      {artwork.commentCount || 0}
+                      {parseInt(artwork.commentCount || "0")}
                     </div>
                   </div>
                 </div>
@@ -239,11 +250,11 @@ export default function Gallery() {
                     <Star
                       className={`w-4 h-4 ${
                         selectedArtwork && (
-                          score <= (selectedArtwork.userRating || 0)
+                          score <= (parseInt(selectedArtwork.userRating?.toString() || "0"))
                             ? 'fill-primary text-primary'
-                            : score <= (selectedArtwork.averageRating || 0)
-                            ? 'fill-muted text-muted'
-                            : ''
+                            : score <= (parseFloat(selectedArtwork.averageRating || "0"))
+                              ? 'fill-muted text-muted'
+                              : ''
                         )
                       }`}
                     />
