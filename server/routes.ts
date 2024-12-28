@@ -7,7 +7,9 @@ import {
   artworks, 
   users, 
   comments,
-  ratings
+  ratings,
+  feedback,
+  styleComparisons
 } from "@db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 
@@ -176,6 +178,63 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Error rating artwork:', error);
       res.status(500).send("Error rating artwork");
+    }
+  });
+
+  // Add logging to the /api/artwork endpoint
+  app.get("/api/artwork", async (req, res) => {
+    try {
+      console.log('Fetching artworks for user:', req.user?.id);
+      const userArtworks = await db
+        .select({
+          id: artworks.id,
+          title: artworks.title,
+          imageUrl: artworks.imageUrl,
+          goals: artworks.goals,
+          isPublic: artworks.isPublic,
+          createdAt: artworks.createdAt,
+          feedback: sql<any>`
+            json_agg(
+              json_build_object(
+                'id', ${feedback.id},
+                'analysis', ${feedback.analysis}
+              )
+            )`,
+          styleComparisons: sql<any>`
+            json_build_object(
+              'asCurrent', (
+                SELECT json_agg(
+                  json_build_object(
+                    'id', sc1.id,
+                    'comparison', sc1.comparison
+                  )
+                )
+                FROM ${styleComparisons} sc1
+                WHERE sc1.current_artwork_id = ${artworks.id}
+              ),
+              'asPrevious', (
+                SELECT json_agg(
+                  json_build_object(
+                    'id', sc2.id,
+                    'comparison', sc2.comparison
+                  )
+                )
+                FROM ${styleComparisons} sc2
+                WHERE sc2.previous_artwork_id = ${artworks.id}
+              )
+            )`
+        })
+        .from(artworks)
+        .leftJoin(feedback, eq(feedback.artworkId, artworks.id))
+        .where(eq(artworks.userId, req.user?.id || 0))
+        .groupBy(artworks.id)
+        .orderBy(desc(artworks.createdAt));
+
+      console.log('Found artworks:', userArtworks.length);
+      res.json(userArtworks);
+    } catch (error) {
+      console.error('Error fetching artworks:', error);
+      res.status(500).send("Error fetching artworks");
     }
   });
 
