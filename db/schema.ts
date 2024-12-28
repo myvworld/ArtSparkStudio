@@ -48,18 +48,50 @@ export const feedback = pgTable("feedback", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const styleComparisons = pgTable("style_comparisons", {
+  id: serial("id").primaryKey(),
+  currentArtworkId: integer("current_artwork_id").references(() => artworks.id).notNull(),
+  previousArtworkId: integer("previous_artwork_id").references(() => artworks.id).notNull(),
+  comparison: json("comparison").$type<{
+    similarities: string[];
+    differences: string[];
+    evolution: {
+      improvements: string[];
+      consistentStrengths: string[];
+      newTechniques: string[];
+    };
+    recommendations: string[];
+  }>().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const artworkRelations = relations(artworks, ({ one, many }) => ({
   user: one(users, {
     fields: [artworks.userId],
     references: [users.id],
   }),
   feedback: many(feedback),
+  currentComparisons: many(styleComparisons, { relationName: "currentArtwork" }),
+  previousComparisons: many(styleComparisons, { relationName: "previousArtwork" }),
 }));
 
 export const feedbackRelations = relations(feedback, ({ one }) => ({
   artwork: one(artworks, {
     fields: [feedback.artworkId],
     references: [artworks.id],
+  }),
+}));
+
+export const styleComparisonRelations = relations(styleComparisons, ({ one }) => ({
+  currentArtwork: one(artworks, {
+    fields: [styleComparisons.currentArtworkId],
+    references: [artworks.id],
+    relationName: "currentArtwork",
+  }),
+  previousArtwork: one(artworks, {
+    fields: [styleComparisons.previousArtworkId],
+    references: [artworks.id],
+    relationName: "previousArtwork",
   }),
 }));
 
@@ -77,3 +109,8 @@ export const insertFeedbackSchema = createInsertSchema(feedback);
 export const selectFeedbackSchema = createSelectSchema(feedback);
 export type Feedback = typeof feedback.$inferSelect;
 export type NewFeedback = typeof feedback.$inferInsert;
+
+export const insertStyleComparisonSchema = createInsertSchema(styleComparisons);
+export const selectStyleComparisonSchema = createSelectSchema(styleComparisons);
+export type StyleComparison = typeof styleComparisons.$inferSelect;
+export type NewStyleComparison = typeof styleComparisons.$inferInsert;

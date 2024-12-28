@@ -33,6 +33,73 @@ export interface ArtAnalysis {
   learningResources: string[];
 }
 
+export interface StyleComparison {
+  similarities: string[];
+  differences: string[];
+  evolution: {
+    improvements: string[];
+    consistentStrengths: string[];
+    newTechniques: string[];
+  };
+  recommendations: string[];
+}
+
+export async function compareArtworkStyles(
+  currentImageBase64: string,
+  previousImageBase64: string
+): Promise<StyleComparison> {
+  try {
+    const prompt = `As an art expert, compare these two artworks and analyze their stylistic relationship. 
+The first image is the artist's current work, and the second is their previous work.
+
+Please provide a detailed comparison in JSON format with the following structure:
+{
+  "similarities": ["List specific stylistic elements that appear in both works"],
+  "differences": ["Note key stylistic changes between the works"],
+  "evolution": {
+    "improvements": ["Areas showing clear progress"],
+    "consistentStrengths": ["Strong elements maintained across both works"],
+    "newTechniques": ["New artistic approaches or techniques introduced"]
+  },
+  "recommendations": ["Specific suggestions for further development based on the observed progression"]
+}
+
+Focus on providing constructive, specific observations that will help the artist understand their progression.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${currentImageBase64}`,
+              },
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${previousImageBase64}`,
+              },
+            },
+          ],
+        },
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    const result = JSON.parse(response.choices[0].message.content);
+    console.log("Style comparison completed successfully");
+    return result;
+  } catch (error) {
+    console.error("OpenAI API error:", error);
+    throw new Error("Failed to compare artworks");
+  }
+}
+
 export async function analyzeArtwork(
   imageBase64: string,
   goals?: string

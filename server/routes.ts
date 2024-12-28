@@ -2,10 +2,10 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import { setupAuth } from "./auth";
-import { analyzeArtwork } from "./openai";
+import { analyzeArtwork, compareArtworkStyles } from "./openai";
 import { db } from "@db";
-import { artworks, feedback } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { artworks, feedback, styleComparisons } from "@db/schema";
+import { eq, desc } from "drizzle-orm";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -40,7 +40,7 @@ export function registerRoutes(app: Express): Server {
 
       console.log(`Processing artwork upload for user ${req.user!.id}`);
 
-      // Store artwork with safe defaults for new columns
+      // Store artwork
       const [artwork] = await db
         .insert(artworks)
         .values({
@@ -48,9 +48,17 @@ export function registerRoutes(app: Express): Server {
           title,
           imageUrl: `data:${req.file.mimetype};base64,${imageBase64}`,
           goals,
-          isPublic: false, // Set default value
         })
         .returning();
+
+      // Get previous artwork for comparison
+      const [previousArtwork] = await db
+        .select()
+        .from(artworks)
+        .where(eq(artworks.userId, req.user!.id))
+        .orderBy(desc(artworks.createdAt))
+        .limit(1)
+        .offset(1);
 
       // Analyze with GPT-4 Vision
       console.log('Initiating artwork analysis');
@@ -69,8 +77,29 @@ export function registerRoutes(app: Express): Server {
         })
         .returning();
 
+      // If there's a previous artwork, perform style comparison
+      let styleComparison = null;
+      if (previousArtwork) {
+        console.log('Comparing with previous artwork');
+        const previousImageBase64 = previousArtwork.imageUrl.split(',')[1];
+        const comparison = await compareArtworkStyles(imageBase64, previousImageBase64);
+
+        [styleComparison] = await db
+          .insert(styleComparisons)
+          .values({
+            currentArtworkId: artwork.id,
+            previousArtworkId: previousArtwork.id,
+            comparison,
+          })
+          .returning();
+      }
+
       console.log(`Successfully processed artwork ${artwork.id}`);
-      res.json({ artwork, feedback: artworkFeedback });
+      res.json({ 
+        artwork, 
+        feedback: artworkFeedback,
+        styleComparison 
+      });
     } catch (error) {
       console.error('Error processing artwork:', error);
       res.status(500).send("Error processing artwork");
@@ -85,26 +114,44 @@ export function registerRoutes(app: Express): Server {
 
       console.log(`Fetching artworks for user ${req.user!.id}`);
 
-      // Use a safer query that doesn't depend on new columns
+      // Get artworks with feedback and style comparisons
       const userArtworks = await db
         .select()
         .from(artworks)
         .where(eq(artworks.userId, req.user!.id))
-        .orderBy(artworks.createdAt);
+        .orderBy(desc(artworks.createdAt));
 
-      // Fetch feedback separately to avoid join issues
-      const artworksWithFeedback = await Promise.all(
+      // Fetch feedback and comparisons for each artwork
+      const artworksWithDetails = await Promise.all(
         userArtworks.map(async (artwork) => {
-          const feedbackItems = await db
-            .select()
-            .from(feedback)
-            .where(eq(feedback.artworkId, artwork.id));
-          return { ...artwork, feedback: feedbackItems };
+          const [feedbackItems, comparisonsAsCurrent, comparisonsAsPrevious] = await Promise.all([
+            db
+              .select()
+              .from(feedback)
+              .where(eq(feedback.artworkId, artwork.id)),
+            db
+              .select()
+              .from(styleComparisons)
+              .where(eq(styleComparisons.currentArtworkId, artwork.id)),
+            db
+              .select()
+              .from(styleComparisons)
+              .where(eq(styleComparisons.previousArtworkId, artwork.id))
+          ]);
+
+          return {
+            ...artwork,
+            feedback: feedbackItems,
+            styleComparisons: {
+              asCurrent: comparisonsAsCurrent,
+              asPrevious: comparisonsAsPrevious
+            }
+          };
         })
       );
 
-      console.log(`Successfully fetched ${artworksWithFeedback.length} artworks`);
-      res.json(artworksWithFeedback);
+      console.log(`Successfully fetched ${artworksWithDetails.length} artworks`);
+      res.json(artworksWithDetails);
     } catch (error) {
       console.error('Error fetching artworks:', error);
       res.status(500).send("Error fetching artworks");
