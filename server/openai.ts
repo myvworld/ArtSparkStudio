@@ -46,10 +46,11 @@ export interface ArtAnalysis {
 
 export async function analyzeArtwork(
   imageBase64: string,
+  title: string,
   goals?: string
 ): Promise<ArtAnalysis> {
   try {
-    const prompt = `As an expert art critic and educator, provide a comprehensive analysis of this artwork. ${
+    const prompt = `As an expert art critic and educator, provide a comprehensive analysis of "${title}". ${
       goals ? `Consider the artist's goals: ${goals}` : ""
     }
 
@@ -77,10 +78,10 @@ Please provide a detailed analysis in JSON format with the following structure:
     "uniqueApproaches": ["Notable technical choices"],
     "materialUsage": "How materials were applied"
   },
-  "strengths": ["3-5 notable achievements"],
-  "improvements": ["3-5 areas for growth"],
-  "detailedFeedback": "Comprehensive analysis incorporating goals",
-  "technicalSuggestions": ["Specific technique improvements"],
+  "strengths": ["3-5 notable achievements in '${title}'"],
+  "improvements": ["3-5 areas for growth specific to '${title}'"],
+  "detailedFeedback": "Comprehensive analysis incorporating goals and artwork title",
+  "technicalSuggestions": ["Specific technique improvements for this piece"],
   "learningResources": ["Recommended tutorials, books, or courses"]
 }`;
 
@@ -114,22 +115,24 @@ Please provide a detailed analysis in JSON format with the following structure:
 
 export async function compareArtworkStyles(
   currentImageBase64: string,
-  previousImageBase64: string
+  previousImageBase64: string,
+  currentTitle: string,
+  previousTitle: string
 ): Promise<StyleComparison> {
   try {
     const prompt = `As an art expert, compare these two artworks and analyze their stylistic relationship. 
-The first image is the artist's current work, and the second is their previous work.
+The first image is "${currentTitle}", and the second is "${previousTitle}".
 
 Please provide a detailed comparison in JSON format with the following structure:
 {
-  "similarities": ["List specific stylistic elements that appear in both works"],
-  "differences": ["Note key stylistic changes between the works"],
+  "similarities": ["List specific stylistic elements that appear in both '${currentTitle}' and '${previousTitle}'"],
+  "differences": ["Note key stylistic changes between '${currentTitle}' and '${previousTitle}'"],
   "evolution": {
-    "improvements": ["Areas showing clear progress"],
+    "improvements": ["Areas showing clear progress in '${currentTitle}' compared to '${previousTitle}'"],
     "consistentStrengths": ["Strong elements maintained across both works"],
-    "newTechniques": ["New artistic approaches or techniques introduced"]
+    "newTechniques": ["New artistic approaches or techniques introduced in '${currentTitle}'"]
   },
-  "recommendations": ["Specific suggestions for further development based on the observed progression"]
+  "recommendations": ["Specific suggestions for further development based on the observed progression between these two pieces"]
 }`;
 
     const response = await openai.chat.completions.create({

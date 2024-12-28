@@ -114,7 +114,7 @@ export function registerRoutes(app: Express): Server {
 
       // Analyze with GPT-4 Vision
       console.log('Initiating artwork analysis');
-      const analysis = await analyzeArtwork(imageBase64, goals);
+      const analysis = await analyzeArtwork(imageBase64, title, goals);
 
       // Store feedback
       const [artworkFeedback] = await db
@@ -134,7 +134,12 @@ export function registerRoutes(app: Express): Server {
       if (previousArtwork) {
         console.log('Comparing with previous artwork');
         const previousImageBase64 = previousArtwork.imageUrl.split(',')[1];
-        const comparison = await compareArtworkStyles(imageBase64, previousImageBase64);
+        const comparison = await compareArtworkStyles(
+          imageBase64,
+          previousImageBase64,
+          artwork.title,
+          previousArtwork.title
+        );
 
         [styleComparison] = await db
           .insert(styleComparisons)
