@@ -27,15 +27,24 @@ export const artworks = pgTable("artworks", {
   title: varchar("title", { length: 255 }).notNull(),
   imageUrl: text("image_url").notNull(),
   goals: text("goals"),
-  isPublic: boolean("is_public").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const feedback = pgTable("feedback", {
   id: serial("id").primaryKey(),
   artworkId: integer("artwork_id").references(() => artworks.id).notNull(),
-  analysis: json("analysis").notNull(),
-  suggestions: json("suggestions").notNull(),
+  analysis: json("analysis").$type<{
+    style?: string;
+    composition?: string;
+    technique?: string;
+    strengths?: string[];
+    improvements?: string[];
+    detailedFeedback?: string;
+  }>().notNull(),
+  suggestions: json("suggestions").$type<{
+    strengths?: string[];
+    improvements?: string[];
+  }>().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

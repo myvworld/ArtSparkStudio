@@ -18,6 +18,12 @@ const upload = multer({ storage: storage });
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
+  // Add logging middleware
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    next();
+  });
+
   // Artwork routes
   app.post("/api/artwork", upload.single("image"), async (req, res) => {
     try {
@@ -32,7 +38,9 @@ export function registerRoutes(app: Express): Server {
       const { title, goals } = req.body;
       const imageBase64 = req.file.buffer.toString("base64");
 
-      // Store artwork
+      console.log(`Processing artwork upload for user ${req.user!.id}`);
+
+      // Store artwork with safe defaults for new columns
       const [artwork] = await db
         .insert(artworks)
         .values({
@@ -40,10 +48,12 @@ export function registerRoutes(app: Express): Server {
           title,
           imageUrl: `data:${req.file.mimetype};base64,${imageBase64}`,
           goals,
+          isPublic: false, // Set default value
         })
         .returning();
 
       // Analyze with GPT-4 Vision
+      console.log('Initiating artwork analysis');
       const analysis = await analyzeArtwork(imageBase64, goals);
 
       // Store feedback
@@ -59,27 +69,46 @@ export function registerRoutes(app: Express): Server {
         })
         .returning();
 
+      console.log(`Successfully processed artwork ${artwork.id}`);
       res.json({ artwork, feedback: artworkFeedback });
     } catch (error) {
-      console.error(error);
+      console.error('Error processing artwork:', error);
       res.status(500).send("Error processing artwork");
     }
   });
 
   app.get("/api/artwork", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).send("Not authenticated");
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send("Not authenticated");
+      }
+
+      console.log(`Fetching artworks for user ${req.user!.id}`);
+
+      // Use a safer query that doesn't depend on new columns
+      const userArtworks = await db
+        .select()
+        .from(artworks)
+        .where(eq(artworks.userId, req.user!.id))
+        .orderBy(artworks.createdAt);
+
+      // Fetch feedback separately to avoid join issues
+      const artworksWithFeedback = await Promise.all(
+        userArtworks.map(async (artwork) => {
+          const feedbackItems = await db
+            .select()
+            .from(feedback)
+            .where(eq(feedback.artworkId, artwork.id));
+          return { ...artwork, feedback: feedbackItems };
+        })
+      );
+
+      console.log(`Successfully fetched ${artworksWithFeedback.length} artworks`);
+      res.json(artworksWithFeedback);
+    } catch (error) {
+      console.error('Error fetching artworks:', error);
+      res.status(500).send("Error fetching artworks");
     }
-
-    const userArtworks = await db.query.artworks.findMany({
-      where: eq(artworks.userId, req.user!.id),
-      with: {
-        feedback: true,
-      },
-      orderBy: (artworks, { desc }) => [desc(artworks.createdAt)],
-    });
-
-    res.json(userArtworks);
   });
 
   // Subscription routes
