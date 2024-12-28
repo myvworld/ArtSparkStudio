@@ -48,6 +48,7 @@ export function registerRoutes(app: Express): Server {
   // Add user's rating to gallery response
   app.get("/api/gallery", async (req, res) => {
     try {
+      console.log('Fetching gallery data for user:', req.user?.id);
       const publicArtworks = await db
         .select({
           id: artworks.id,
@@ -56,7 +57,7 @@ export function registerRoutes(app: Express): Server {
           createdAt: artworks.createdAt,
           username: users.username,
           userId: users.id,
-          averageRating: sql<number>`CAST(COALESCE(AVG(${ratings.score}), 0) AS DECIMAL(10,1))`,
+          averageRating: sql<number>`ROUND(CAST(COALESCE(AVG(${ratings.score}), 0) AS DECIMAL(10,1)), 1)`,
           commentCount: sql<number>`COUNT(DISTINCT ${comments.id})`,
           userRating: req.user
             ? sql<number>`MAX(CASE WHEN ${ratings.userId} = ${req.user.id} THEN ${ratings.score} END)`
@@ -70,6 +71,7 @@ export function registerRoutes(app: Express): Server {
         .groupBy(artworks.id, users.id)
         .orderBy(desc(artworks.createdAt));
 
+      console.log('Gallery data:', JSON.stringify(publicArtworks[0], null, 2));
       res.json(publicArtworks);
     } catch (error) {
       console.error('Error fetching gallery:', error);

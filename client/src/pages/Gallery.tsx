@@ -22,7 +22,7 @@ interface GalleryArtwork {
   createdAt: string;
   username: string;
   userId: number;
-  averageRating: number;
+  averageRating: number | null;
   commentCount: number;
   userRating: number | null;
 }
@@ -35,6 +35,14 @@ export default function Gallery() {
 
   const { data: artworks, isLoading, refetch } = useQuery<GalleryArtwork[]>({
     queryKey: ["/api/gallery"],
+    onError: (error) => {
+      console.error('Error fetching gallery:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load gallery",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleComment = async (artworkId: number) => {
@@ -74,6 +82,12 @@ export default function Gallery() {
     }
   };
 
+  // Format the rating with one decimal place, handling null/undefined cases
+  const formatRating = (rating: number | null | undefined): string => {
+    if (rating === null || rating === undefined) return '0.0';
+    return Number(rating).toFixed(1);
+  };
+
   return (
     <div className="container py-8 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
@@ -111,7 +125,7 @@ export default function Gallery() {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center">
                       <Star className="w-4 h-4 mr-1" />
-                      {artwork.averageRating ? artwork.averageRating.toFixed(1) : '0.0'}
+                      {formatRating(artwork.averageRating)}
                     </div>
                     <div className="flex items-center">
                       <MessageSquare className="w-4 h-4 mr-1" />
@@ -166,7 +180,7 @@ export default function Gallery() {
                       className={`w-4 h-4 ${
                         selectedArtwork && 
                         (score <= (selectedArtwork.userRating || 0) ? 'fill-primary' : 
-                         score <= selectedArtwork.averageRating ? 'fill-muted' : '')
+                         score <= (selectedArtwork.averageRating || 0) ? 'fill-muted' : '')
                       }`} 
                     />
                   </Button>
