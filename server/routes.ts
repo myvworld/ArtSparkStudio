@@ -4,9 +4,30 @@ import multer from "multer";
 import { setupAuth } from "./auth";
 import { analyzeArtwork, compareArtworkStyles } from "./openai";
 import { db } from "@db";
-import { artworks, feedback, styleComparisons, users } from "@db/schema";
-import { eq, desc } from "drizzle-orm";
+import { 
+  artworks, 
+  feedback, 
+  styleComparisons, 
+  users, 
+  comments,
+  ratings,
+  type User
+} from "@db/schema";
+import { eq, desc, and, sql } from "drizzle-orm";
 import Stripe from "stripe";
+
+// Declare express user type
+declare global {
+  namespace Express {
+    interface User {
+      id: number;
+      username: string;
+      email: string;
+      subscriptionTier: string;
+      stripeCustomerId?: string;
+    }
+  }
+}
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2024-12-18.acacia",
@@ -22,6 +43,221 @@ export function registerRoutes(app: Express): Server {
   app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
     next();
+  });
+
+  // Community gallery route
+  app.get("/api/gallery", async (req, res) => {
+    try {
+      const publicArtworks = await db
+        .select({
+          id: artworks.id,
+          title: artworks.title,
+          imageUrl: artworks.imageUrl,
+          createdAt: artworks.createdAt,
+          username: users.username,
+          userId: users.id,
+          averageRating: sql<number>`COALESCE(AVG(${ratings.score}), 0)`,
+          commentCount: sql<number>`COUNT(DISTINCT ${comments.id})`,
+        })
+        .from(artworks)
+        .innerJoin(users, eq(users.id, artworks.userId))
+        .leftJoin(ratings, eq(ratings.artworkId, artworks.id))
+        .leftJoin(comments, eq(comments.artworkId, artworks.id))
+        .where(eq(artworks.isPublic, true))
+        .groupBy(artworks.id, users.id)
+        .orderBy(desc(artworks.createdAt));
+
+      res.json(publicArtworks);
+    } catch (error) {
+      console.error('Error fetching gallery:', error);
+      res.status(500).send("Error fetching gallery");
+    }
+  });
+
+  // Artwork visibility toggle
+  app.patch("/api/artwork/:id/visibility", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send("Not authenticated");
+      }
+
+      const artworkId = parseInt(req.params.id);
+      if (isNaN(artworkId)) {
+        return res.status(400).send("Invalid artwork ID");
+      }
+
+      const [artwork] = await db
+        .select()
+        .from(artworks)
+        .where(eq(artworks.id, artworkId));
+
+      if (!artwork) {
+        return res.status(404).send("Artwork not found");
+      }
+
+      if (artwork.userId !== req.user?.id) {
+        return res.status(403).send("Not authorized to update this artwork");
+      }
+
+      const [updated] = await db
+        .update(artworks)
+        .set({ isPublic: !artwork.isPublic })
+        .where(eq(artworks.id, artworkId))
+        .returning();
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating visibility:', error);
+      res.status(500).send("Error updating visibility");
+    }
+  });
+
+  // Comments routes
+  app.post("/api/artwork/:id/comments", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send("Not authenticated");
+      }
+
+      const artworkId = parseInt(req.params.id);
+      if (isNaN(artworkId)) {
+        return res.status(400).send("Invalid artwork ID");
+      }
+
+      const { content } = req.body;
+      if (!content) {
+        return res.status(400).send("Comment content is required");
+      }
+
+      const [artwork] = await db
+        .select()
+        .from(artworks)
+        .where(eq(artworks.id, artworkId));
+
+      if (!artwork) {
+        return res.status(404).send("Artwork not found");
+      }
+
+      const [comment] = await db
+        .insert(comments)
+        .values({
+          artworkId,
+          userId: req.user.id,
+          content,
+        })
+        .returning();
+
+      res.json(comment);
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      res.status(500).send("Error adding comment");
+    }
+  });
+
+  // Get comments for an artwork
+  app.get("/api/artwork/:id/comments", async (req, res) => {
+    try {
+      const artworkId = parseInt(req.params.id);
+      if (isNaN(artworkId)) {
+        return res.status(400).send("Invalid artwork ID");
+      }
+
+      const artworkComments = await db
+        .select({
+          id: comments.id,
+          content: comments.content,
+          createdAt: comments.createdAt,
+          username: users.username,
+          userId: users.id,
+        })
+        .from(comments)
+        .innerJoin(users, eq(users.id, comments.userId))
+        .where(eq(comments.artworkId, artworkId))
+        .orderBy(desc(comments.createdAt));
+
+      res.json(artworkComments);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      res.status(500).send("Error fetching comments");
+    }
+  });
+
+  // Rating routes
+  app.post("/api/artwork/:id/rate", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send("Not authenticated");
+      }
+
+      const artworkId = parseInt(req.params.id);
+      if (isNaN(artworkId)) {
+        return res.status(400).send("Invalid artwork ID");
+      }
+
+      const { score } = req.body;
+      if (typeof score !== 'number' || score < 1 || score > 5) {
+        return res.status(400).send("Score must be between 1 and 5");
+      }
+
+      const [existingRating] = await db
+        .select()
+        .from(ratings)
+        .where(
+          and(
+            eq(ratings.artworkId, artworkId),
+            eq(ratings.userId, req.user.id)
+          )
+        );
+
+      if (existingRating) {
+        const [updated] = await db
+          .update(ratings)
+          .set({ score })
+          .where(eq(ratings.id, existingRating.id))
+          .returning();
+        return res.json(updated);
+      }
+
+      const [rating] = await db
+        .insert(ratings)
+        .values({
+          artworkId,
+          userId: req.user.id,
+          score,
+        })
+        .returning();
+
+      res.json(rating);
+    } catch (error) {
+      console.error('Error rating artwork:', error);
+      res.status(500).send("Error rating artwork");
+    }
+  });
+
+  // Get average rating for an artwork
+  app.get("/api/artwork/:id/rating", async (req, res) => {
+    try {
+      const artworkId = parseInt(req.params.id);
+      if (isNaN(artworkId)) {
+        return res.status(400).send("Invalid artwork ID");
+      }
+
+      const result = await db
+        .select({
+          averageRating: sql<number>`COALESCE(AVG(${ratings.score}), 0)`,
+          totalRatings: sql<number>`COUNT(*)`,
+          userRating: req.user
+            ? sql<number>`MAX(CASE WHEN ${ratings.userId} = ${req.user.id} THEN ${ratings.score} END)`
+            : sql<null>`NULL`,
+        })
+        .from(ratings)
+        .where(eq(ratings.artworkId, artworkId));
+
+      res.json(result[0]);
+    } catch (error) {
+      console.error('Error fetching rating:', error);
+      res.status(500).send("Error fetching rating");
+    }
   });
 
   // Delete artwork route
@@ -47,20 +283,17 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).send("Artwork not found");
       }
 
-      const userId = req.user?.id;
-      if (!userId || artwork.userId !== userId) {
+      if (artwork.userId !== req.user?.id) {
         return res.status(403).send("Not authorized to delete this artwork");
       }
 
       // Delete associated records (style comparisons and feedback)
       await db.transaction(async (tx) => {
-        await tx.delete(styleComparisons).where(
-          eq(styleComparisons.currentArtworkId, artworkId)
-        );
-        await tx.delete(styleComparisons).where(
-          eq(styleComparisons.previousArtworkId, artworkId)
-        );
+        await tx.delete(styleComparisons).where(eq(styleComparisons.currentArtworkId, artworkId));
+        await tx.delete(styleComparisons).where(eq(styleComparisons.previousArtworkId, artworkId));
         await tx.delete(feedback).where(eq(feedback.artworkId, artworkId));
+        await tx.delete(comments).where(eq(comments.artworkId, artworkId));
+        await tx.delete(ratings).where(eq(ratings.artworkId, artworkId));
         await tx.delete(artworks).where(eq(artworks.id, artworkId));
       });
 
@@ -82,7 +315,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).send("No file uploaded");
       }
 
-      const { title, goals } = req.body;
+      const { title, goals, isPublic = false } = req.body;
       const imageBase64 = req.file.buffer.toString("base64");
       const userId = req.user?.id;
 
@@ -100,6 +333,7 @@ export function registerRoutes(app: Express): Server {
           title,
           imageUrl: `data:${req.file.mimetype};base64,${imageBase64}`,
           goals,
+          isPublic: Boolean(isPublic)
         })
         .returning();
 
@@ -116,15 +350,22 @@ export function registerRoutes(app: Express): Server {
       console.log('Initiating artwork analysis');
       const analysis = await analyzeArtwork(imageBase64, title, goals);
 
-      // Store feedback
+      // Store feedback with the correct type
       const [artworkFeedback] = await db
         .insert(feedback)
         .values({
           artworkId: artwork.id,
-          analysis,
+          analysis: {
+            style: analysis.style.current,
+            composition: analysis.composition.structure,
+            technique: analysis.technique.medium,
+            strengths: analysis.strengths,
+            improvements: analysis.improvements,
+            detailedFeedback: analysis.detailedFeedback,
+          },
           suggestions: {
-            strengths: analysis.strengths || [],
-            improvements: analysis.improvements || [],
+            strengths: analysis.strengths,
+            improvements: analysis.improvements,
           },
         })
         .returning();
@@ -227,12 +468,6 @@ export function registerRoutes(app: Express): Server {
     }
 
     const { priceId } = req.body;
-    const userId = req.user?.id;
-    const stripeCustomerId = req.user?.stripeCustomerId;
-
-    if (!userId) {
-      return res.status(401).send("User ID not found");
-    }
 
     try {
       const session = await stripe.checkout.sessions.create({
@@ -246,7 +481,7 @@ export function registerRoutes(app: Express): Server {
         ],
         success_url: `${process.env.REPLIT_DOMAINS?.split(",")[0]}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.REPLIT_DOMAINS?.split(",")[0]}/subscription`,
-        customer: stripeCustomerId || undefined,
+        customer: req.user?.stripeCustomerId || undefined,
       });
 
       res.json({ url: session.url });
