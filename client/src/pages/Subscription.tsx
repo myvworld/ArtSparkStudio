@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,12 +46,31 @@ export default function Subscription() {
   const { toast } = useToast();
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
-  const handleSubscribe = async (tier: string, priceId: string) => {
+  // Validate environment variables on component mount
+  useEffect(() => {
+    console.log('Checking subscription configuration:', {
+      basicPriceId: import.meta.env.VITE_STRIPE_BASIC_PRICE_ID,
+      proPriceId: import.meta.env.VITE_STRIPE_PRO_PRICE_ID,
+      basicTierConfig: SUBSCRIPTION_TIERS.basic.priceId,
+      proTierConfig: SUBSCRIPTION_TIERS.pro.priceId,
+    });
+
+    if (!import.meta.env.VITE_STRIPE_BASIC_PRICE_ID || !import.meta.env.VITE_STRIPE_PRO_PRICE_ID) {
+      console.error('Missing Stripe price IDs in environment configuration');
+      toast({
+        title: "Configuration Error",
+        description: "Subscription service is currently unavailable. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+  const handleSubscribe = async (tier: string, priceId: string | null) => {
     if (!priceId) {
       console.error('Missing price ID for tier:', tier);
       toast({
         title: "Error",
-        description: "Invalid subscription plan",
+        description: "This subscription plan is currently unavailable",
         variant: "destructive",
       });
       return;
@@ -111,12 +130,6 @@ export default function Subscription() {
     }
   };
 
-  // Debug log subscription tiers
-  console.log('Available subscription tiers:', {
-    basic: SUBSCRIPTION_TIERS.basic.priceId,
-    pro: SUBSCRIPTION_TIERS.pro.priceId
-  });
-
   return (
     <div className="container py-12 max-w-6xl">
       <div className="text-center mb-12">
@@ -162,7 +175,7 @@ export default function Subscription() {
                   !tier.priceId ||
                   user?.subscriptionTier === key
                 }
-                onClick={() => tier.priceId && handleSubscribe(key, tier.priceId)}
+                onClick={() => handleSubscribe(key, tier.priceId)}
               >
                 {loadingTier === key ? (
                   <>
