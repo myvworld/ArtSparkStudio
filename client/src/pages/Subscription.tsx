@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Separator } from "@/components/ui/separator";
 
 interface StripeConfig {
   basicPriceId: string;
@@ -59,6 +60,28 @@ const SUBSCRIPTION_TIERS = {
   },
 };
 
+const TOKEN_PACKAGES = [
+  {
+    name: "Basic Pack",
+    credits: 100,
+    price: "$9.99",
+    description: "Perfect for occasional uploads",
+  },
+  {
+    name: "Popular Pack",
+    credits: 250,
+    price: "$19.99",
+    description: "Best value for regular users",
+    popular: true,
+  },
+  {
+    name: "Pro Pack",
+    credits: 500,
+    price: "$39.99",
+    description: "Ideal for power users",
+  },
+];
+
 export default function Subscription() {
   const { user } = useUser();
   const { toast } = useToast();
@@ -104,7 +127,7 @@ export default function Subscription() {
   }
 
   return (
-    <div className="container py-12 max-w-6xl">
+    <div className="container py-12 max-w-7xl">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-4">Choose Your Creative Journey</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -115,7 +138,8 @@ export default function Subscription() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8">
+      {/* Subscription Plans */}
+      <div className="grid md:grid-cols-3 gap-8 mb-16">
         {Object.entries(SUBSCRIPTION_TIERS).map(([key, tier]) => (
           <Card
             key={key}
@@ -164,6 +188,132 @@ export default function Subscription() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Pay-As-You-Go Section */}
+      <div className="mb-16">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold mb-2">Pay-As-You-Go</h2>
+          <p className="text-muted-foreground">
+            Perfect for users who prefer flexibility without a subscription
+          </p>
+        </div>
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle>FlexPass</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <div className="text-2xl font-semibold mb-2">$0.50 per upload</div>
+                <p className="text-muted-foreground">
+                  Access professional-level AI feedback without a subscription
+                </p>
+              </div>
+              <ul className="space-y-3">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-primary" />
+                  <span>Professional-tier AI feedback</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-primary" />
+                  <span>No monthly commitments</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-primary" />
+                  <span>Pay only for what you use</span>
+                </li>
+              </ul>
+              <Button className="w-full mt-4">
+                Get Started with FlexPass
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Token Packages Section */}
+      <div className="mb-16">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold mb-2">Token Packages</h2>
+          <p className="text-muted-foreground">
+            Need more uploads? Purchase additional tokens at discounted rates
+          </p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-8">
+          {TOKEN_PACKAGES.map((pack) => (
+            <Card
+              key={pack.name}
+              className={pack.popular ? "border-primary shadow-lg" : undefined}
+            >
+              <CardHeader>
+                <CardTitle className="flex flex-col gap-2">
+                  <span>{pack.name}</span>
+                  <div className="text-2xl font-normal text-muted-foreground">
+                    {pack.price}
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">{pack.description}</p>
+                  <div className="text-lg font-medium">
+                    {pack.credits} uploads
+                  </div>
+                  <Button className="w-full" variant={pack.popular ? "default" : "outline"}>
+                    Purchase Tokens
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Portfolio Review Section */}
+      <div>
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold mb-2">Portfolio Review</h2>
+          <p className="text-muted-foreground">
+            Get comprehensive AI analysis of your entire portfolio
+          </p>
+        </div>
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle>Professional Portfolio Analysis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <div className="text-2xl font-semibold mb-2">$49.99 per report</div>
+                <p className="text-muted-foreground">
+                  Detailed AI-generated professional report with comprehensive improvement suggestions
+                </p>
+              </div>
+              <ul className="space-y-3">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-primary" />
+                  <span>In-depth style analysis</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-primary" />
+                  <span>Technical skill assessment</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-primary" />
+                  <span>Personalized improvement roadmap</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-primary" />
+                  <span>Market positioning insights</span>
+                </li>
+              </ul>
+              <Button className="w-full mt-4">
+                Order Portfolio Review
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

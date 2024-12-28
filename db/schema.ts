@@ -6,7 +6,8 @@ import {
   boolean,
   integer,
   json,
-  varchar
+  varchar,
+  decimal
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
@@ -18,6 +19,38 @@ export const users = pgTable("users", {
   email: text("email").unique().notNull(),
   subscriptionTier: text("subscription_tier").default("free").notNull(),
   stripeCustomerId: text("stripe_customer_id"),
+  tokenBalance: decimal("token_balance", { precision: 10, scale: 2 }).default("0").notNull(),
+  monthlyUploadsUsed: integer("monthly_uploads_used").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const tokenPackages = pgTable("token_packages", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  credits: integer("credits").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const tokenPurchases = pgTable("token_purchases", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  packageId: integer("package_id").references(() => tokenPackages.id).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  credits: integer("credits").notNull(),
+  stripePaymentId: text("stripe_payment_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const portfolioReviews = pgTable("portfolio_reviews", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  reportContent: json("report_content").notNull(),
+  status: text("status").default("pending").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  stripePaymentId: text("stripe_payment_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -29,6 +62,7 @@ export const artworks = pgTable("artworks", {
   goals: text("goals"),
   isPublic: boolean("is_public").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  tokensCost: decimal("tokens_cost", { precision: 10, scale: 2 }),
 });
 
 export const comments = pgTable("comments", {
@@ -103,7 +137,6 @@ export const styleComparisons = pgTable("style_comparisons", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Relations
 export const artworkRelations = relations(artworks, ({ one, many }) => ({
   user: one(users, {
     fields: [artworks.userId],
@@ -114,6 +147,16 @@ export const artworkRelations = relations(artworks, ({ one, many }) => ({
   ratings: many(ratings),
   currentComparisons: many(styleComparisons, { relationName: "currentArtwork" }),
   previousComparisons: many(styleComparisons, { relationName: "previousArtwork" }),
+}));
+
+export const userRelations = relations(users, ({ many }) => ({
+  artworks: many(artworks),
+  tokenPurchases: many(tokenPurchases),
+  portfolioReviews: many(portfolioReviews),
+}));
+
+export const tokenPackageRelations = relations(tokenPackages, ({ many }) => ({
+  purchases: many(tokenPurchases),
 }));
 
 export const commentsRelations = relations(comments, ({ one }) => ({
@@ -158,18 +201,10 @@ export const styleComparisonRelations = relations(styleComparisons, ({ one }) =>
   }),
 }));
 
-// Schema types
+
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
-export type User = {
-  id: number;
-  username: string;
-  email: string;
-  subscriptionTier: string;
-  stripeCustomerId?: string | null;
-  createdAt: Date;
-  password: string;
-};
+export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
 export const insertArtworkSchema = createInsertSchema(artworks);
@@ -196,3 +231,18 @@ export const insertStyleComparisonSchema = createInsertSchema(styleComparisons);
 export const selectStyleComparisonSchema = createSelectSchema(styleComparisons);
 export type StyleComparison = typeof styleComparisons.$inferSelect;
 export type NewStyleComparison = typeof styleComparisons.$inferInsert;
+
+export const insertTokenPackageSchema = createInsertSchema(tokenPackages);
+export const selectTokenPackageSchema = createSelectSchema(tokenPackages);
+export type TokenPackage = typeof tokenPackages.$inferSelect;
+export type NewTokenPackage = typeof tokenPackages.$inferInsert;
+
+export const insertTokenPurchaseSchema = createInsertSchema(tokenPurchases);
+export const selectTokenPurchaseSchema = createSelectSchema(tokenPurchases);
+export type TokenPurchase = typeof tokenPurchases.$inferSelect;
+export type NewTokenPurchase = typeof tokenPurchases.$inferInsert;
+
+export const insertPortfolioReviewSchema = createInsertSchema(portfolioReviews);
+export const selectPortfolioReviewSchema = createSelectSchema(portfolioReviews);
+export type PortfolioReview = typeof portfolioReviews.$inferSelect;
+export type NewPortfolioReview = typeof portfolioReviews.$inferInsert;
