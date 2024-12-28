@@ -48,13 +48,6 @@ export default function Subscription() {
 
   // Validate environment variables on component mount
   useEffect(() => {
-    console.log('Checking subscription configuration:', {
-      basicPriceId: import.meta.env.VITE_STRIPE_BASIC_PRICE_ID,
-      proPriceId: import.meta.env.VITE_STRIPE_PRO_PRICE_ID,
-      basicTierConfig: SUBSCRIPTION_TIERS.basic.priceId,
-      proTierConfig: SUBSCRIPTION_TIERS.pro.priceId,
-    });
-
     if (!import.meta.env.VITE_STRIPE_BASIC_PRICE_ID || !import.meta.env.VITE_STRIPE_PRO_PRICE_ID) {
       console.error('Missing Stripe price IDs in environment configuration');
       toast({
