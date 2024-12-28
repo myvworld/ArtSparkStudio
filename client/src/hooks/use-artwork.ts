@@ -75,12 +75,33 @@ export function useArtwork() {
     },
   });
 
+  const toggleVisibilityMutation = useMutation({
+    mutationFn: async (artworkId: number) => {
+      const response = await fetch(`/api/artwork/${artworkId}/visibility`, {
+        method: "PATCH",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["artworks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
+    },
+  });
+
   return {
     artworks,
     isLoading,
     upload: uploadMutation.mutateAsync,
     delete: deleteMutation.mutateAsync,
+    toggleVisibility: toggleVisibilityMutation.mutateAsync,
     isUploading: uploadMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    isTogglingVisibility: toggleVisibilityMutation.isPending,
   };
 }

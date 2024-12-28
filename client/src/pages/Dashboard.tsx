@@ -18,7 +18,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { Loader2, Upload, Image as ImageIcon, Palette, Layout, Brush, Trash2 } from "lucide-react";
+import { Loader2, Upload, Image as ImageIcon, Palette, Layout, Brush, Trash2, Globe, Lock } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -246,10 +246,11 @@ const renderFeedback = (feedback: any, styleComparison: any) => {
 };
 
 export default function Dashboard() {
-  const { artworks, upload, delete: deleteArtwork, isLoading, isUploading, isDeleting } = useArtwork();
+  const { artworks, upload, delete: deleteArtwork, toggleVisibility, isLoading, isUploading, isDeleting, isTogglingVisibility } = useArtwork();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const handleDelete = async (artworkId: number) => {
     try {
@@ -264,6 +265,25 @@ export default function Dashboard() {
         description: error.message || "Failed to delete artwork",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleToggleVisibility = async (artworkId: number, currentVisibility: boolean) => {
+    try {
+      setTogglingId(artworkId);
+      await toggleVisibility(artworkId, currentVisibility);
+      toast({
+        title: "Success",
+        description: `Artwork ${currentVisibility ? 'removed from' : 'shared to'} community gallery`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update visibility",
+        variant: "destructive",
+      });
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -423,42 +443,60 @@ export default function Dashboard() {
             <Card key={artwork.id}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle>{artwork.title}</CardTitle>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      disabled={isDeleting && deletingId === artwork.id}
-                    >
-                      {isDeleting && deletingId === artwork.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Artwork</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete this artwork? This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => {
-                          setDeletingId(artwork.id);
-                          handleDelete(artwork.id);
-                        }}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={isTogglingVisibility && togglingId === artwork.id}
+                    onClick={() => handleToggleVisibility(artwork.id, artwork.isPublic)}
+                    title={artwork.isPublic ? "Remove from community gallery" : "Share to community gallery"}
+                  >
+                    {isTogglingVisibility && togglingId === artwork.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : artwork.isPublic ? (
+                      <Globe className="h-4 w-4" />
+                    ) : (
+                      <Lock className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={isDeleting && deletingId === artwork.id}
                       >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                        {isDeleting && deletingId === artwork.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Artwork</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this artwork? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => {
+                            setDeletingId(artwork.id);
+                            handleDelete(artwork.id);
+                          }}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </CardHeader>
               <CardContent>
                 <img
