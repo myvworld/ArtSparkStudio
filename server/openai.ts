@@ -4,12 +4,26 @@ import OpenAI from "openai";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export interface ArtAnalysis {
-  style: string;
-  composition: string;
-  technique: string;
+  style: {
+    current: string;
+    influences: string[];
+    similarArtists: string[];
+  };
+  composition: {
+    structure: string;
+    balance: string;
+    colorTheory: string;
+    perspective: string;
+  };
+  technique: {
+    medium: string;
+    execution: string;
+    skillLevel: string;
+  };
   strengths: string[];
   improvements: string[];
   detailedFeedback: string;
+  technicalSuggestions: string[];
 }
 
 export async function analyzeArtwork(
@@ -17,19 +31,35 @@ export async function analyzeArtwork(
   goals?: string
 ): Promise<ArtAnalysis> {
   try {
-    const prompt = `As an art expert, analyze this artwork in detail. ${
+    const prompt = `As an expert art critic and educator, analyze this artwork in detail. ${
       goals ? `The artist's goals are: ${goals}` : ""
     }
 
-Please provide a structured analysis in JSON format with the following fields:
-- style: The artistic style and influences
-- composition: Analysis of the composition and visual elements
-- technique: Technical aspects of the execution
-- strengths: Array of key strengths (3-5 points)
-- improvements: Array of suggested improvements (3-5 points)
-- detailedFeedback: Comprehensive feedback incorporating the goals
+Please provide a comprehensive analysis in JSON format with the following structure:
+{
+  "style": {
+    "current": "Main artistic style",
+    "influences": ["List of artistic influences"],
+    "similarArtists": ["Artists with similar styles"]
+  },
+  "composition": {
+    "structure": "Analysis of compositional structure",
+    "balance": "Assessment of visual balance",
+    "colorTheory": "Color usage and harmony analysis",
+    "perspective": "Evaluation of perspective and depth"
+  },
+  "technique": {
+    "medium": "Identified medium and materials",
+    "execution": "Technical execution assessment",
+    "skillLevel": "Current skill level evaluation"
+  },
+  "strengths": ["3-5 key strengths"],
+  "improvements": ["3-5 suggested improvements"],
+  "detailedFeedback": "Comprehensive feedback incorporating goals",
+  "technicalSuggestions": ["Specific technical recommendations"]
+}
 
-Focus on being constructive and specific in your feedback.`;
+Focus on being constructive and specific in your feedback. Include references to art principles and techniques where relevant.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
