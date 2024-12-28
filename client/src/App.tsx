@@ -3,12 +3,13 @@ import { useUser } from "./hooks/use-user";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
-import { Loader2 } from "lucide-react";
+import { Loader2, LineChart } from "lucide-react";
 
 import AuthPage from "./pages/AuthPage";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Gallery from "./pages/Gallery";
+import Analytics from "./pages/Analytics";
 import Subscription from "./pages/Subscription";
 import Settings from "./pages/Settings";
 import { Button } from "./components/ui/button";
@@ -53,6 +54,12 @@ function App() {
             >
               <a href="/gallery">Community Gallery</a>
             </Button>
+            <Button
+              variant={location === "/analytics" ? "default" : "ghost"}
+              asChild
+            >
+              <a href="/analytics">Analytics</a>
+            </Button>
           </div>
           <div className="flex items-center gap-4">
             <Button
@@ -76,6 +83,7 @@ function App() {
           <Route path="/" component={Home} />
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/gallery" component={Gallery} />
+          <Route path="/analytics" component={Analytics} />
           <Route path="/subscription" component={Subscription} />
           <Route path="/settings" component={Settings} />
           <Route>
