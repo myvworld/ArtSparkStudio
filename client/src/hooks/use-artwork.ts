@@ -29,7 +29,9 @@ export function useArtwork() {
         throw new Error(await response.text());
       }
 
-      return response.json();
+      const data = await response.json();
+      console.log('Fetched artworks data:', data); // Debug log
+      return data;
     },
   });
 

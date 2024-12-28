@@ -1,6 +1,6 @@
 import { useArtwork } from "@/hooks/use-artwork";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, TrendingUp, Palette, Layout, Brush } from "lucide-react";
+import { Loader2, TrendingUp, Palette } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -14,16 +14,33 @@ import {
 export default function Analytics() {
   const { artworks, isLoading } = useArtwork();
 
-  // Process artworks to extract progress data
+  // Process artworks to extract progress data with proper null checks
   const processedData = artworks?.map(artwork => {
     const feedback = artwork.feedback?.[0];
+    const skillLevel = feedback?.analysis?.technique?.skillLevel;
+
     return {
       date: new Date(artwork.createdAt).toLocaleDateString(),
-      technicalScore: feedback?.analysis.technique.skillLevel === 'Advanced' ? 3 :
-        feedback?.analysis.technique.skillLevel === 'Intermediate' ? 2 : 1,
+      technicalScore: skillLevel === 'Advanced' ? 3 :
+        skillLevel === 'Intermediate' ? 2 :
+        skillLevel === 'Beginner' ? 1 : 0,
       title: artwork.title
     };
-  }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }).filter(data => data.technicalScore > 0) // Only include entries with valid skill levels
+  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Safely extract improvements and strengths with null checks
+  const recentImprovements = artworks?.slice(-2)
+    .map(artwork => artwork.styleComparisons?.asCurrent?.[0]?.comparison?.evolution?.improvements)
+    .filter(Array.isArray)
+    .flat()
+    .filter(Boolean) || [];
+
+  const consistentStrengths = artworks?.slice(-2)
+    .map(artwork => artwork.styleComparisons?.asCurrent?.[0]?.comparison?.evolution?.consistentStrengths)
+    .filter(Array.isArray)
+    .flat()
+    .filter(Boolean) || [];
 
   if (isLoading) {
     return (
@@ -32,14 +49,6 @@ export default function Analytics() {
       </div>
     );
   }
-
-  const recentImprovements = artworks?.slice(-2).map(artwork => 
-    artwork.styleComparisons?.asCurrent?.[0]?.comparison.evolution.improvements
-  ).flat().filter(Boolean);
-
-  const consistentStrengths = artworks?.slice(-2).map(artwork => 
-    artwork.styleComparisons?.asCurrent?.[0]?.comparison.evolution.consistentStrengths
-  ).flat().filter(Boolean);
 
   return (
     <div className="container py-6 max-w-7xl">
@@ -70,48 +79,54 @@ export default function Analytics() {
               <CardTitle>Technical Skill Progression</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={processedData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="date"
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 12 }}
-                      domain={[0, 3]}
-                      ticks={[1, 2, 3]}
-                      tickFormatter={(value) => 
-                        value === 1 ? 'Beginner' :
-                        value === 2 ? 'Intermediate' : 'Advanced'
-                      }
-                    />
-                    <Tooltip
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <div className="bg-background border p-2 rounded-lg shadow-lg">
-                              <p className="font-medium">{data.title}</p>
-                              <p className="text-sm text-muted-foreground">{data.date}</p>
-                            </div>
-                          );
+              {processedData && processedData.length > 0 ? (
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={processedData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="date"
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12 }}
+                        domain={[0, 3]}
+                        ticks={[1, 2, 3]}
+                        tickFormatter={(value) => 
+                          value === 1 ? 'Beginner' :
+                          value === 2 ? 'Intermediate' : 'Advanced'
                         }
-                        return null;
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="technicalScore"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+                      />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload?.[0]) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-background border p-2 rounded-lg shadow-lg">
+                                <p className="font-medium">{data.title}</p>
+                                <p className="text-sm text-muted-foreground">{data.date}</p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="technicalScore"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2}
+                        dot={{ r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  Not enough data to generate progress chart
+                </p>
+              )}
             </CardContent>
           </Card>
 
