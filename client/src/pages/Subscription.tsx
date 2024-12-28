@@ -44,10 +44,12 @@ const SUBSCRIPTION_TIERS = {
 export default function Subscription() {
   const { user } = useUser();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
-  const handleSubscribe = async (priceId: string) => {
-    setIsLoading(priceId);
+  const handleSubscribe = async (tier: string, priceId: string) => {
+    if (!priceId) return;
+
+    setLoadingTier(tier);
     try {
       const response = await fetch("/api/subscription/create-checkout-session", {
         method: "POST",
@@ -63,7 +65,11 @@ export default function Subscription() {
       }
 
       const { url } = await response.json();
-      window.location.href = url;
+      if (url) {
+        window.location.href = url;
+      } else {
+        throw new Error("No checkout URL received");
+      }
     } catch (error) {
       console.error('Subscription error:', error);
       toast({
@@ -72,7 +78,7 @@ export default function Subscription() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(null);
+      setLoadingTier(null);
     }
   };
 
@@ -117,13 +123,13 @@ export default function Subscription() {
                 className="w-full"
                 variant={key === "basic" ? "default" : "outline"}
                 disabled={
-                  isLoading !== null ||
+                  loadingTier !== null ||
                   !tier.priceId ||
                   user?.subscriptionTier === key
                 }
-                onClick={() => tier.priceId && handleSubscribe(tier.priceId)}
+                onClick={() => tier.priceId && handleSubscribe(key, tier.priceId)}
               >
-                {isLoading === tier.priceId ? (
+                {loadingTier === key ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Processing...
