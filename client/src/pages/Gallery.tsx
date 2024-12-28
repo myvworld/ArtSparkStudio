@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useCommunity } from "@/hooks/use-community";
-import { Loader2, Star, MessageSquare } from "lucide-react";
+import { Loader2, Star, MessageSquare, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,6 +57,7 @@ export default function Gallery() {
       });
       setComment("");
       refetch(); // Refresh gallery data
+      setSelectedArtwork(null); // Close the dialog after successful comment
     } catch (error: any) {
       toast({
         title: "Error",
@@ -73,6 +75,14 @@ export default function Gallery() {
         description: "Rating submitted successfully",
       });
       refetch(); // Refresh gallery data
+
+      // Update local state immediately for better UX
+      if (selectedArtwork) {
+        setSelectedArtwork({
+          ...selectedArtwork,
+          userRating: score,
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -151,10 +161,15 @@ export default function Gallery() {
         </div>
       )}
 
-      <Dialog open={!!selectedArtwork} onOpenChange={() => setSelectedArtwork(null)}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{selectedArtwork?.title}</DialogTitle>
+      <Dialog open={!!selectedArtwork} onOpenChange={(open) => !open && setSelectedArtwork(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="sticky top-0 bg-background z-10 pb-4">
+            <div className="flex justify-between items-center">
+              <DialogTitle>{selectedArtwork?.title}</DialogTitle>
+              <DialogClose className="h-8 w-8 p-0">
+                <X className="h-4 w-4" />
+              </DialogClose>
+            </div>
           </DialogHeader>
           <div className="space-y-4">
             <img
@@ -178,9 +193,13 @@ export default function Gallery() {
                   >
                     <Star 
                       className={`w-4 h-4 ${
-                        selectedArtwork && 
-                        (score <= (selectedArtwork.userRating || 0) ? 'fill-primary' : 
-                         score <= (selectedArtwork.averageRating || 0) ? 'fill-muted' : '')
+                        selectedArtwork && (
+                          score <= (selectedArtwork.userRating || 0)
+                            ? 'fill-primary text-primary'
+                            : score <= (selectedArtwork.averageRating || 0)
+                            ? 'fill-muted text-muted'
+                            : ''
+                        )
                       }`} 
                     />
                   </Button>
