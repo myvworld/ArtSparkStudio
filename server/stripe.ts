@@ -3,17 +3,33 @@ import { db } from "@db";
 import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("STRIPE_SECRET_KEY is required");
+// Validate required environment variables
+const requiredEnvVars = [
+  'STRIPE_SECRET_KEY',
+  'STRIPE_WEBHOOK_SECRET'
+];
+
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingEnvVars.length > 0) {
+  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2023-08-16', // Using a stable API version that works with TypeScript
+  typescript: true,
+});
 
 // Subscription price IDs from environment variables
-const SUBSCRIPTION_PRICES = {
+export const SUBSCRIPTION_PRICES = {
   basic: process.env.STRIPE_BASIC_PRICE_ID,
   pro: process.env.STRIPE_PRO_PRICE_ID,
-};
+} as const;
+
+// Log available price IDs
+console.log('Configured Stripe price IDs:', {
+  basic: SUBSCRIPTION_PRICES.basic,
+  pro: SUBSCRIPTION_PRICES.pro
+});
 
 export async function createStripeCustomer(userId: number, email: string) {
   console.log(`Creating Stripe customer for user ${userId} with email ${email}`);
@@ -35,6 +51,7 @@ export async function createStripeCustomer(userId: number, email: string) {
 
 export async function createStripeCheckoutSession(userId: number, priceId: string) {
   console.log(`Creating checkout session for user ${userId} with price ${priceId}`);
+
   const [user] = await db
     .select()
     .from(users)
@@ -62,8 +79,8 @@ export async function createStripeCheckoutSession(userId: number, priceId: strin
         quantity: 1,
       },
     ],
-    success_url: `${process.env.APP_URL || window.location.origin}/subscription?success=true`,
-    cancel_url: `${process.env.APP_URL || window.location.origin}/subscription?canceled=true`,
+    success_url: `${process.env.APP_URL || 'http://localhost:5000'}/subscription?success=true`,
+    cancel_url: `${process.env.APP_URL || 'http://localhost:5000'}/subscription?canceled=true`,
     metadata: {
       userId: userId.toString(),
     },

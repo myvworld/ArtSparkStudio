@@ -11,7 +11,7 @@ import {
   feedback,
   styleComparisons
 } from "@db/schema";
-import { createStripeCheckoutSession, handleStripeWebhook } from "./stripe";
+import { createStripeCheckoutSession, handleStripeWebhook, SUBSCRIPTION_PRICES } from "./stripe";
 import { eq, desc, and, sql } from "drizzle-orm";
 import express from 'express';
 
@@ -25,6 +25,16 @@ export function registerRoutes(app: Express): Server {
   app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
     next();
+  });
+
+  // Add Stripe configuration endpoint
+  app.get("/api/subscription/config", (req, res) => {
+    // Only expose what the client needs
+    res.json({
+      basicPriceId: SUBSCRIPTION_PRICES.basic,
+      proPriceId: SUBSCRIPTION_PRICES.pro,
+      mode: process.env.NODE_ENV === 'production' ? 'live' : 'test'
+    });
   });
 
   // Add user's rating to gallery response

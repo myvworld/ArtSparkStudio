@@ -4,6 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+
+interface StripeConfig {
+  basicPriceId: string;
+  proPriceId: string;
+  mode: 'test' | 'live';
+}
 
 const SUBSCRIPTION_TIERS = {
   free: {
@@ -25,7 +32,7 @@ const SUBSCRIPTION_TIERS = {
       "Priority response time",
       "Progress tracking",
     ],
-    priceId: import.meta.env.VITE_STRIPE_BASIC_PRICE_ID,
+    priceId: undefined, // Will be set from server config
   },
   pro: {
     name: "Pro",
@@ -37,7 +44,7 @@ const SUBSCRIPTION_TIERS = {
       "Team collaboration features",
       "API access",
     ],
-    priceId: import.meta.env.VITE_STRIPE_PRO_PRICE_ID,
+    priceId: undefined, // Will be set from server config
   },
 };
 
@@ -46,17 +53,28 @@ export default function Subscription() {
   const { toast } = useToast();
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
-  // Validate environment variables on component mount
-  useEffect(() => {
-    if (!import.meta.env.VITE_STRIPE_BASIC_PRICE_ID || !import.meta.env.VITE_STRIPE_PRO_PRICE_ID) {
-      console.error('Missing Stripe price IDs in environment configuration');
+  // Fetch Stripe configuration from server
+  const { data: config, isLoading: isLoadingConfig } = useQuery<StripeConfig>({
+    queryKey: ["/api/subscription/config"],
+    onSuccess: (data) => {
+      SUBSCRIPTION_TIERS.basic.priceId = data.basicPriceId;
+      SUBSCRIPTION_TIERS.pro.priceId = data.proPriceId;
+
+      console.log('Loaded subscription configuration:', {
+        mode: data.mode,
+        basic: data.basicPriceId,
+        pro: data.proPriceId
+      });
+    },
+    onError: (error) => {
+      console.error('Failed to load subscription configuration:', error);
       toast({
-        title: "Configuration Error",
-        description: "Subscription service is currently unavailable. Please try again later.",
+        title: "Error",
+        description: "Failed to load subscription configuration",
         variant: "destructive",
       });
-    }
-  }, [toast]);
+    },
+  });
 
   const handleSubscribe = async (tier: string, priceId: string | null) => {
     if (!priceId) {
@@ -69,12 +87,6 @@ export default function Subscription() {
       return;
     }
 
-    console.log('Starting subscription process:', {
-      tier,
-      priceId,
-      userId: user?.id
-    });
-
     setLoadingTier(tier);
     try {
       const response = await fetch("/api/subscription/create-checkout-session", {
@@ -86,20 +98,12 @@ export default function Subscription() {
         credentials: "include",
       });
 
-      console.log('Subscription API response:', {
-        status: response.status,
-        ok: response.ok
-      });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || 'Failed to create checkout session');
       }
 
       const data = await response.json();
-      console.log('Checkout session created:', {
-        hasUrl: !!data.url
-      });
 
       if (!data.url) {
         throw new Error("No checkout URL received");
@@ -123,6 +127,14 @@ export default function Subscription() {
     }
   };
 
+  if (isLoadingConfig) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="container py-12 max-w-6xl">
       <div className="text-center mb-12">
@@ -131,6 +143,11 @@ export default function Subscription() {
           Select the perfect plan for your artistic journey. Upgrade anytime to
           unlock more features and feedback.
         </p>
+        {config?.mode === 'test' && (
+          <div className="mt-4 text-sm text-yellow-600 bg-yellow-50 p-2 rounded">
+            Test Mode Active - Use test card numbers for payments
+          </div>
+        )}
       </div>
 
       <div className="grid md:grid-cols-3 gap-8">
