@@ -20,6 +20,220 @@ import {
 } from "@/components/ui/tabs";
 import { Loader2, Upload, Image as ImageIcon, Palette, Layout, Brush } from "lucide-react";
 
+const renderStyleComparison = (comparison: any) => {
+  if (!comparison) return null;
+
+  return (
+    <div className="space-y-4 border-t pt-4">
+      <h4 className="font-medium">Progress Analysis</h4>
+      <div className="grid gap-4 md:grid-cols-2">
+        {comparison.similarities?.length > 0 && (
+          <div>
+            <h5 className="text-sm font-medium mb-2">Consistent Elements</h5>
+            <ul className="list-disc list-inside text-sm text-muted-foreground">
+              {comparison.similarities.map((item: string, i: number) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {comparison.differences?.length > 0 && (
+          <div>
+            <h5 className="text-sm font-medium mb-2">Style Evolution</h5>
+            <ul className="list-disc list-inside text-sm text-muted-foreground">
+              {comparison.differences.map((item: string, i: number) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      {comparison.evolution && (
+        <div className="space-y-3">
+          {comparison.evolution.improvements?.length > 0 && (
+            <div>
+              <h5 className="text-sm font-medium mb-2">Areas of Improvement</h5>
+              <ul className="list-disc list-inside text-sm text-muted-foreground">
+                {comparison.evolution.improvements.map((item: string, i: number) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {comparison.evolution.newTechniques?.length > 0 && (
+            <div>
+              <h5 className="text-sm font-medium mb-2">New Techniques</h5>
+              <ul className="list-disc list-inside text-sm text-muted-foreground">
+                {comparison.evolution.newTechniques.map((item: string, i: number) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+      {comparison.recommendations?.length > 0 && (
+        <div>
+          <h5 className="text-sm font-medium mb-2">Recommendations</h5>
+          <ul className="list-disc list-inside text-sm text-muted-foreground">
+            {comparison.recommendations.map((item: string, i: number) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const renderStyleAnalysis = (analysis: any) => {
+  if (!analysis?.style) return null;
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Palette className="w-4 h-4 text-primary" />
+        <h4 className="font-medium">Style Analysis</h4>
+      </div>
+      <div className="grid gap-2 text-sm">
+        <p><span className="font-medium">Style:</span> {analysis.style.current}</p>
+        {analysis.style.influences?.length > 0 && (
+          <p><span className="font-medium">Influences:</span> {analysis.style.influences.join(", ")}</p>
+        )}
+        {analysis.style.period && (
+          <p><span className="font-medium">Period:</span> {analysis.style.period}</p>
+        )}
+        {analysis.style.movement && (
+          <p><span className="font-medium">Movement:</span> {analysis.style.movement}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const renderCompositionAnalysis = (analysis: any) => {
+  if (!analysis?.composition) return null;
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Layout className="w-4 h-4 text-primary" />
+        <h4 className="font-medium">Composition</h4>
+      </div>
+      <div className="grid gap-2 text-sm">
+        <p><span className="font-medium">Structure:</span> {analysis.composition.structure}</p>
+        <p><span className="font-medium">Balance:</span> {analysis.composition.balance}</p>
+        <p><span className="font-medium">Color Theory:</span> {analysis.composition.colorTheory}</p>
+        {analysis.composition.focusPoints?.length > 0 && (
+          <p><span className="font-medium">Focus Points:</span> {analysis.composition.focusPoints.join(", ")}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const renderTechnicalAnalysis = (analysis: any) => {
+  if (!analysis?.technique) return null;
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Brush className="w-4 h-4 text-primary" />
+        <h4 className="font-medium">Technical Analysis</h4>
+      </div>
+      <div className="grid gap-2 text-sm">
+        <p><span className="font-medium">Medium:</span> {analysis.technique.medium}</p>
+        <p><span className="font-medium">Execution:</span> {analysis.technique.execution}</p>
+        <p><span className="font-medium">Skill Level:</span> {analysis.technique.skillLevel}</p>
+        {analysis.technique.uniqueApproaches?.length > 0 && (
+          <p><span className="font-medium">Unique Approaches:</span> {analysis.technique.uniqueApproaches.join(", ")}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const renderFeedback = (feedback: any, styleComparison: any) => {
+  if (!feedback || !feedback.analysis) return null;
+
+  const analysis = feedback.analysis;
+  return (
+    <div className="space-y-6">
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid grid-cols-4 w-full">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="style">Style</TabsTrigger>
+          <TabsTrigger value="composition">Composition</TabsTrigger>
+          <TabsTrigger value="technical">Technical</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-4">
+          <div>
+            <h3 className="font-semibold mb-2">Overall Analysis</h3>
+            <p className="text-sm text-muted-foreground">
+              {analysis.detailedFeedback}
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {analysis.strengths?.length > 0 && (
+              <div>
+                <h4 className="font-medium text-sm mb-2">Strengths</h4>
+                <ul className="list-disc list-inside text-sm text-muted-foreground">
+                  {analysis.strengths.map((strength: string, i: number) => (
+                    <li key={i}>{strength}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {analysis.improvements?.length > 0 && (
+              <div>
+                <h4 className="font-medium text-sm mb-2">Areas for Improvement</h4>
+                <ul className="list-disc list-inside text-sm text-muted-foreground">
+                  {analysis.improvements.map((improvement: string, i: number) => (
+                    <li key={i}>{improvement}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="style">
+          {renderStyleAnalysis(analysis)}
+        </TabsContent>
+
+        <TabsContent value="composition">
+          {renderCompositionAnalysis(analysis)}
+        </TabsContent>
+
+        <TabsContent value="technical">
+          {renderTechnicalAnalysis(analysis)}
+        </TabsContent>
+      </Tabs>
+
+      {styleComparison && (
+        <div className="mt-6">
+          <h4 className="font-semibold mb-4">Style Evolution</h4>
+          <p className="text-sm text-muted-foreground mb-4">
+            This analysis compares your current work with your previous artwork to track your artistic growth and development.
+          </p>
+          {renderStyleComparison(styleComparison.comparison)}
+        </div>
+      )}
+
+      {analysis.learningResources?.length > 0 && (
+        <div>
+          <h4 className="font-medium text-sm mb-2">Learning Resources</h4>
+          <ul className="list-disc list-inside text-sm text-muted-foreground">
+            {analysis.learningResources.map((resource: string, i: number) => (
+              <li key={i}>{resource}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function Dashboard() {
   const { artworks, upload, isLoading, isUploading } = useArtwork();
   const { toast } = useToast();
@@ -59,143 +273,6 @@ export default function Dashboard() {
     }
   };
 
-  const renderStyleAnalysis = (analysis: any) => {
-    if (!analysis?.style) return null;
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Palette className="w-4 h-4 text-primary" />
-          <h4 className="font-medium">Style Analysis</h4>
-        </div>
-        <div className="grid gap-2 text-sm">
-          <p><span className="font-medium">Style:</span> {analysis.style.current}</p>
-          {analysis.style.influences?.length > 0 && (
-            <p><span className="font-medium">Influences:</span> {analysis.style.influences.join(", ")}</p>
-          )}
-          {analysis.style.period && (
-            <p><span className="font-medium">Period:</span> {analysis.style.period}</p>
-          )}
-          {analysis.style.movement && (
-            <p><span className="font-medium">Movement:</span> {analysis.style.movement}</p>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const renderCompositionAnalysis = (analysis: any) => {
-    if (!analysis?.composition) return null;
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Layout className="w-4 h-4 text-primary" />
-          <h4 className="font-medium">Composition</h4>
-        </div>
-        <div className="grid gap-2 text-sm">
-          <p><span className="font-medium">Structure:</span> {analysis.composition.structure}</p>
-          <p><span className="font-medium">Balance:</span> {analysis.composition.balance}</p>
-          <p><span className="font-medium">Color Theory:</span> {analysis.composition.colorTheory}</p>
-          {analysis.composition.focusPoints?.length > 0 && (
-            <p><span className="font-medium">Focus Points:</span> {analysis.composition.focusPoints.join(", ")}</p>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const renderTechnicalAnalysis = (analysis: any) => {
-    if (!analysis?.technique) return null;
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Brush className="w-4 h-4 text-primary" />
-          <h4 className="font-medium">Technical Analysis</h4>
-        </div>
-        <div className="grid gap-2 text-sm">
-          <p><span className="font-medium">Medium:</span> {analysis.technique.medium}</p>
-          <p><span className="font-medium">Execution:</span> {analysis.technique.execution}</p>
-          <p><span className="font-medium">Skill Level:</span> {analysis.technique.skillLevel}</p>
-          {analysis.technique.uniqueApproaches?.length > 0 && (
-            <p><span className="font-medium">Unique Approaches:</span> {analysis.technique.uniqueApproaches.join(", ")}</p>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const renderFeedback = (feedback: any) => {
-    if (!feedback || !feedback.analysis) return null;
-
-    const analysis = feedback.analysis;
-    return (
-      <div className="space-y-6">
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid grid-cols-4 w-full">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="style">Style</TabsTrigger>
-            <TabsTrigger value="composition">Composition</TabsTrigger>
-            <TabsTrigger value="technical">Technical</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-4">
-            <div>
-              <h3 className="font-semibold mb-2">Overall Analysis</h3>
-              <p className="text-sm text-muted-foreground">
-                {analysis.detailedFeedback}
-              </p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {analysis.strengths?.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-sm mb-2">Strengths</h4>
-                  <ul className="list-disc list-inside text-sm text-muted-foreground">
-                    {analysis.strengths.map((strength: string, i: number) => (
-                      <li key={i}>{strength}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {analysis.improvements?.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-sm mb-2">Areas for Improvement</h4>
-                  <ul className="list-disc list-inside text-sm text-muted-foreground">
-                    {analysis.improvements.map((improvement: string, i: number) => (
-                      <li key={i}>{improvement}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="style">
-            {renderStyleAnalysis(analysis)}
-          </TabsContent>
-
-          <TabsContent value="composition">
-            {renderCompositionAnalysis(analysis)}
-          </TabsContent>
-
-          <TabsContent value="technical">
-            {renderTechnicalAnalysis(analysis)}
-          </TabsContent>
-        </Tabs>
-
-        {analysis.learningResources?.length > 0 && (
-          <div>
-            <h4 className="font-medium text-sm mb-2">Learning Resources</h4>
-            <ul className="list-disc list-inside text-sm text-muted-foreground">
-              {analysis.learningResources.map((resource: string, i: number) => (
-                <li key={i}>{resource}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="container py-6 max-w-7xl">
@@ -320,7 +397,10 @@ export default function Dashboard() {
                   alt={artwork.title}
                   className="rounded-lg mb-4 aspect-square object-cover"
                 />
-                {artwork.feedback?.[0] && renderFeedback(artwork.feedback[0])}
+                {artwork.feedback?.[0] && renderFeedback(
+                  artwork.feedback[0],
+                  artwork.styleComparisons?.asCurrent?.[0]
+                )}
               </CardContent>
             </Card>
           ))}
