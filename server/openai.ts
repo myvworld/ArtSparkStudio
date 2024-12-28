@@ -50,39 +50,39 @@ export async function analyzeArtwork(
   goals?: string
 ): Promise<ArtAnalysis> {
   try {
-    const prompt = `As an expert art critic and educator, provide a comprehensive analysis of "${title}". ${
-      goals ? `Consider the artist's goals: ${goals}` : ""
+    const prompt = `As an expert art critic and educator, provide a comprehensive analysis of this artwork titled "${title}". ${
+      goals ? `The artist's goals for "${title}" are: ${goals}.` : ""
     }
 
-Please provide a detailed analysis in JSON format with the following structure:
+Please provide a detailed analysis in JSON format, making specific references to "${title}" where appropriate, with the following structure:
 {
   "style": {
-    "current": "Primary artistic style",
-    "influences": ["Notable artistic influences"],
-    "similarArtists": ["Artists with comparable styles"],
-    "period": "Historical or contemporary period",
+    "current": "Primary artistic style demonstrated in '${title}'",
+    "influences": ["Notable artistic influences visible in this work"],
+    "similarArtists": ["Artists whose style resonates with '${title}'"],
+    "period": "Historical or contemporary period this piece reflects",
     "movement": "Associated art movement"
   },
   "composition": {
-    "structure": "Detailed analysis of compositional structure",
-    "balance": "Assessment of visual weight and balance",
-    "colorTheory": "Analysis of color harmony and relationships",
+    "structure": "Detailed analysis of '${title}'s' compositional structure",
+    "balance": "Assessment of visual weight and balance in the piece",
+    "colorTheory": "Analysis of color harmony and relationships used",
     "perspective": "Evaluation of depth and spatial relationships",
-    "focusPoints": ["Key areas that draw attention"],
+    "focusPoints": ["Key areas that draw attention in '${title}'"],
     "dynamicElements": ["Elements creating movement or flow"]
   },
   "technique": {
-    "medium": "Identified materials and tools",
+    "medium": "Materials and tools used in '${title}'",
     "execution": "Technical proficiency assessment",
-    "skillLevel": "Current skill evaluation",
-    "uniqueApproaches": ["Notable technical choices"],
-    "materialUsage": "How materials were applied"
+    "skillLevel": "Current skill level demonstrated",
+    "uniqueApproaches": ["Notable technical choices in '${title}'"],
+    "materialUsage": "How materials were applied in this piece"
   },
   "strengths": ["3-5 notable achievements in '${title}'"],
-  "improvements": ["3-5 areas for growth specific to '${title}'"],
-  "detailedFeedback": "Comprehensive analysis incorporating goals and artwork title",
-  "technicalSuggestions": ["Specific technique improvements for this piece"],
-  "learningResources": ["Recommended tutorials, books, or courses"]
+  "improvements": ["3-5 specific areas where '${title}' could be enhanced"],
+  "detailedFeedback": "Comprehensive analysis incorporating the goals and specific elements of '${title}'",
+  "technicalSuggestions": ["Specific technique improvements for '${title}'"],
+  "learningResources": ["Recommended tutorials, books, or courses relevant to improving aspects of '${title}'"]
 }`;
 
     const response = await openai.chat.completions.create({
@@ -120,19 +120,18 @@ export async function compareArtworkStyles(
   previousTitle: string
 ): Promise<StyleComparison> {
   try {
-    const prompt = `As an art expert, compare these two artworks and analyze their stylistic relationship. 
-The first image is "${currentTitle}", and the second is "${previousTitle}".
+    const prompt = `As an art expert, provide a personalized comparison between these two artworks: "${currentTitle}" (the newer piece) and "${previousTitle}" (the previous work).
 
-Please provide a detailed comparison in JSON format with the following structure:
+Please provide a detailed comparison in JSON format that specifically references both artworks by name where appropriate:
 {
   "similarities": ["List specific stylistic elements that appear in both '${currentTitle}' and '${previousTitle}'"],
-  "differences": ["Note key stylistic changes between '${currentTitle}' and '${previousTitle}'"],
+  "differences": ["Note how '${currentTitle}' differs from '${previousTitle}' in terms of style and execution"],
   "evolution": {
-    "improvements": ["Areas showing clear progress in '${currentTitle}' compared to '${previousTitle}'"],
-    "consistentStrengths": ["Strong elements maintained across both works"],
-    "newTechniques": ["New artistic approaches or techniques introduced in '${currentTitle}'"]
+    "improvements": ["Areas where '${currentTitle}' shows clear progress compared to '${previousTitle}'"],
+    "consistentStrengths": ["Strong elements maintained from '${previousTitle}' to '${currentTitle}'"],
+    "newTechniques": ["New artistic approaches or techniques introduced in '${currentTitle}' that weren't present in '${previousTitle}'"]
   },
-  "recommendations": ["Specific suggestions for further development based on the observed progression between these two pieces"]
+  "recommendations": ["Specific suggestions for further development, based on the progress shown between '${previousTitle}' and '${currentTitle}'"]
 }`;
 
     const response = await openai.chat.completions.create({
