@@ -11,7 +11,9 @@ import {
   feedback,
   styleComparisons
 } from "@db/schema";
+import { createStripeCheckoutSession, handleStripeWebhook } from "./stripe";
 import { eq, desc, and, sql } from "drizzle-orm";
+import express from 'express';
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -235,6 +237,43 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Error fetching artworks:', error);
       res.status(500).send("Error fetching artworks");
+    }
+  });
+
+  // Subscription routes
+  app.post("/api/subscription/create-checkout-session", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send("Not authenticated");
+      }
+
+      const { priceId } = req.body;
+      if (!priceId) {
+        return res.status(400).send("Price ID is required");
+      }
+
+      const session = await createStripeCheckoutSession(req.user.id, priceId);
+      res.json({ url: session.url });
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      res.status(500).send("Error creating checkout session");
+    }
+  });
+
+  // Stripe webhook endpoint
+  app.post("/api/stripe/webhook", express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+      const signature = req.headers["stripe-signature"];
+      if (!signature) {
+        return res.status(400).send("Stripe signature is required");
+      }
+
+      const result = await handleStripeWebhook(signature, req.body);
+      res.json(result);
+    } catch (err) {
+      const error = err as Error;
+      console.error("Error handling webhook:", error);
+      res.status(400).send(`Webhook Error: ${error.message}`);
     }
   });
 

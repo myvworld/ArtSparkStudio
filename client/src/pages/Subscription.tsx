@@ -16,8 +16,8 @@ const SUBSCRIPTION_TIERS = {
     ],
     priceId: null,
   },
-  personal: {
-    name: "Personal",
+  basic: {
+    name: "Basic",
     price: "$9.99/month",
     features: [
       "50 artwork analyses per month",
@@ -25,10 +25,10 @@ const SUBSCRIPTION_TIERS = {
       "Priority response time",
       "Progress tracking",
     ],
-    priceId: "price_personal",
+    priceId: import.meta.env.VITE_STRIPE_BASIC_PRICE_ID,
   },
-  business: {
-    name: "Business",
+  pro: {
+    name: "Pro",
     price: "$29.99/month",
     features: [
       "Unlimited artwork analyses",
@@ -37,7 +37,7 @@ const SUBSCRIPTION_TIERS = {
       "Team collaboration features",
       "API access",
     ],
-    priceId: "price_business",
+    priceId: import.meta.env.VITE_STRIPE_PRO_PRICE_ID,
   },
 };
 
@@ -49,7 +49,7 @@ export default function Subscription() {
   const handleSubscribe = async (priceId: string) => {
     setIsLoading(priceId);
     try {
-      const response = await fetch("/api/create-checkout-session", {
+      const response = await fetch("/api/subscription/create-checkout-session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -64,10 +64,11 @@ export default function Subscription() {
 
       const { url } = await response.json();
       window.location.href = url;
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Subscription error:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Failed to start subscription process",
         variant: "destructive",
       });
     } finally {
@@ -90,7 +91,7 @@ export default function Subscription() {
           <Card
             key={key}
             className={
-              key === "personal" ? "border-primary shadow-lg" : undefined
+              key === "basic" ? "border-primary shadow-lg" : undefined
             }
           >
             <CardHeader>
@@ -114,7 +115,7 @@ export default function Subscription() {
               </ul>
               <Button
                 className="w-full"
-                variant={key === "personal" ? "default" : "outline"}
+                variant={key === "basic" ? "default" : "outline"}
                 disabled={
                   isLoading !== null ||
                   !tier.priceId ||
