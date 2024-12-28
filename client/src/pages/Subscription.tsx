@@ -13,7 +13,23 @@ interface StripeConfig {
   mode: 'test' | 'live';
 }
 
-const SUBSCRIPTION_TIERS = {
+interface SubscriptionTier {
+  name: string;
+  price: string;
+  yearlyPrice?: string;
+  features: string[];
+  priceId: string | null | undefined;
+}
+
+interface TokenPackage {
+  name: string;
+  credits: number;
+  price: string;
+  description: string;
+  popular?: boolean;
+}
+
+const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
   free: {
     name: "Spark Starter",
     price: "Free",
@@ -60,7 +76,7 @@ const SUBSCRIPTION_TIERS = {
   },
 };
 
-const TOKEN_PACKAGES = [
+const TOKEN_PACKAGES: TokenPackage[] = [
   {
     name: "Basic Pack",
     credits: 100,
@@ -88,27 +104,15 @@ export default function Subscription() {
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
   // Fetch Stripe configuration from server
-  const { data: config, isLoading: isLoadingConfig } = useQuery<StripeConfig>({
+  const { data: config } = useQuery<StripeConfig>({
     queryKey: ["/api/subscription/config"],
-    onSuccess: (data) => {
-      SUBSCRIPTION_TIERS.basic.priceId = data.basicPriceId;
-      SUBSCRIPTION_TIERS.pro.priceId = data.proPriceId;
-
-      console.log('Loaded subscription configuration:', {
-        mode: data.mode,
-        basic: data.basicPriceId,
-        pro: data.proPriceId
-      });
-    },
-    onError: (error) => {
-      console.error('Failed to load subscription configuration:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load subscription configuration",
-        variant: "destructive",
-      });
-    },
   });
+
+  // Update price IDs when config is loaded
+  if (config) {
+    SUBSCRIPTION_TIERS.basic.priceId = config.basicPriceId;
+    SUBSCRIPTION_TIERS.pro.priceId = config.proPriceId;
+  }
 
   const handleSubscribe = async (tier: string, priceId: string | null) => {
     // For test version, just show a message
@@ -117,14 +121,6 @@ export default function Subscription() {
       description: "This is a test version. Payment integration coming soon!",
     });
   };
-
-  if (isLoadingConfig) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="container py-12 max-w-7xl">
