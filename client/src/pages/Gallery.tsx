@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,11 +28,21 @@ interface GalleryArtwork {
   userRating: number | null;
 }
 
+interface Comment {
+  id: number;
+  content: string;
+  createdAt: string;
+  username: string;
+  userId: number;
+}
+
 export default function Gallery() {
   const { toast } = useToast();
   const [selectedArtwork, setSelectedArtwork] = useState<GalleryArtwork | null>(null);
   const [comment, setComment] = useState("");
   const { comment: submitComment, rate: submitRating, isCommenting, isRating } = useCommunity();
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
 
   const { data: artworks, isLoading, refetch } = useQuery<GalleryArtwork[]>({
     queryKey: ["/api/gallery"],
@@ -56,8 +66,8 @@ export default function Gallery() {
         description: "Comment added successfully",
       });
       setComment("");
-      refetch(); // Refresh gallery data
-      setSelectedArtwork(null); // Close the dialog after successful comment
+      refetch(); 
+      setSelectedArtwork(null); 
     } catch (error: any) {
       toast({
         title: "Error",
@@ -74,9 +84,8 @@ export default function Gallery() {
         title: "Success",
         description: "Rating submitted successfully",
       });
-      refetch(); // Refresh gallery data
+      refetch(); 
 
-      // Update local state immediately for better UX
       if (selectedArtwork) {
         setSelectedArtwork({
           ...selectedArtwork,
@@ -92,10 +101,46 @@ export default function Gallery() {
     }
   };
 
-  // Format the rating with one decimal place, handling null/undefined cases
   const formatRating = (rating: number | null | undefined): string => {
     if (rating === null || rating === undefined) return '0.0';
     return Number(rating).toFixed(1);
+  };
+
+  useEffect(() => {
+    async function loadComments() {
+      if (!selectedArtwork) return;
+
+      setIsLoadingComments(true);
+      try {
+        const response = await fetch(`/api/artwork/${selectedArtwork.id}/comments`, {
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+
+        const data = await response.json();
+        setComments(data);
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: "Failed to load comments",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingComments(false);
+      }
+    }
+
+    loadComments();
+  }, [selectedArtwork, toast]);
+
+  const handleDialogChange = (open: boolean) => {
+    if (!open) {
+      setSelectedArtwork(null);
+      setComments([]);
+    }
   };
 
   return (
@@ -161,7 +206,7 @@ export default function Gallery() {
         </div>
       )}
 
-      <Dialog open={!!selectedArtwork} onOpenChange={(open) => !open && setSelectedArtwork(null)}>
+      <Dialog open={!!selectedArtwork} onOpenChange={handleDialogChange}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="sticky top-0 bg-background z-10 pb-4">
             <div className="flex justify-between items-center">
@@ -191,7 +236,7 @@ export default function Gallery() {
                     disabled={isRating}
                     onClick={() => selectedArtwork && handleRating(selectedArtwork.id, score)}
                   >
-                    <Star 
+                    <Star
                       className={`w-4 h-4 ${
                         selectedArtwork && (
                           score <= (selectedArtwork.userRating || 0)
@@ -200,33 +245,55 @@ export default function Gallery() {
                             ? 'fill-muted text-muted'
                             : ''
                         )
-                      }`} 
+                      }`}
                     />
                   </Button>
                 ))}
               </div>
             </div>
             <Separator />
-            <div className="space-y-2">
-              <Textarea
-                placeholder="Add a comment..."
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-              />
-              <Button
-                className="w-full"
-                disabled={isCommenting || !comment.trim()}
-                onClick={() => selectedArtwork && handleComment(selectedArtwork.id)}
-              >
-                {isCommenting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Adding Comment...
-                  </>
-                ) : (
-                  "Add Comment"
-                )}
-              </Button>
+            <div className="space-y-4">
+              {isLoadingComments ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    {comments.map((comment) => (
+                      <div key={comment.id} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">{comment.username}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(comment.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{comment.content}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Textarea
+                    placeholder="Add a comment..."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                  />
+                  <Button
+                    className="w-full"
+                    disabled={isCommenting || !comment.trim()}
+                    onClick={() => selectedArtwork && handleComment(selectedArtwork.id)}
+                  >
+                    {isCommenting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Adding Comment...
+                      </>
+                    ) : (
+                      "Add Comment"
+                    )}
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </DialogContent>
