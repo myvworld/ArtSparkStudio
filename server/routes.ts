@@ -24,6 +24,52 @@ export function registerRoutes(app: Express): Server {
     next();
   });
 
+  // Delete artwork route
+  app.delete("/api/artwork/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).send("Not authenticated");
+      }
+
+      const artworkId = parseInt(req.params.id);
+      if (isNaN(artworkId)) {
+        return res.status(400).send("Invalid artwork ID");
+      }
+
+      // Verify ownership
+      const [artwork] = await db
+        .select()
+        .from(artworks)
+        .where(eq(artworks.id, artworkId))
+        .limit(1);
+
+      if (!artwork) {
+        return res.status(404).send("Artwork not found");
+      }
+
+      if (artwork.userId !== req.user!.id) {
+        return res.status(403).send("Not authorized to delete this artwork");
+      }
+
+      // Delete associated records (style comparisons and feedback)
+      await db.transaction(async (tx) => {
+        await tx.delete(styleComparisons).where(
+          eq(styleComparisons.currentArtworkId, artworkId)
+        );
+        await tx.delete(styleComparisons).where(
+          eq(styleComparisons.previousArtworkId, artworkId)
+        );
+        await tx.delete(feedback).where(eq(feedback.artworkId, artworkId));
+        await tx.delete(artworks).where(eq(artworks.id, artworkId));
+      });
+
+      res.json({ message: "Artwork deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting artwork:', error);
+      res.status(500).send("Error deleting artwork");
+    }
+  });
+
   // Artwork routes
   app.post("/api/artwork", upload.single("image"), async (req, res) => {
     try {

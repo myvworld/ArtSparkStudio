@@ -9,6 +9,10 @@ interface UploadArtworkData {
 
 interface ArtworkWithFeedback extends Artwork {
   feedback?: Feedback[];
+  styleComparisons?: {
+    asCurrent?: any[];
+    asPrevious?: any[];
+  };
 }
 
 export function useArtwork() {
@@ -53,10 +57,30 @@ export function useArtwork() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (artworkId: number) => {
+      const response = await fetch(`/api/artwork/${artworkId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["artworks"] });
+    },
+  });
+
   return {
     artworks,
     isLoading,
     upload: uploadMutation.mutateAsync,
+    delete: deleteMutation.mutateAsync,
     isUploading: uploadMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   };
 }

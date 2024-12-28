@@ -18,7 +18,18 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { Loader2, Upload, Image as ImageIcon, Palette, Layout, Brush } from "lucide-react";
+import { Loader2, Upload, Image as ImageIcon, Palette, Layout, Brush, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const renderStyleComparison = (comparison: any) => {
   if (!comparison) return null;
@@ -235,9 +246,26 @@ const renderFeedback = (feedback: any, styleComparison: any) => {
 };
 
 export default function Dashboard() {
-  const { artworks, upload, isLoading, isUploading } = useArtwork();
+  const { artworks, upload, delete: deleteArtwork, isLoading, isUploading, isDeleting } = useArtwork();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const handleDelete = async (artworkId: number) => {
+    try {
+      await deleteArtwork(artworkId);
+      toast({
+        title: "Success",
+        description: "Artwork deleted successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete artwork",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -277,7 +305,12 @@ export default function Dashboard() {
   return (
     <div className="container py-6 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Your Artwork</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Your Artwork</h1>
+          <p className="text-muted-foreground mt-2">
+            Upload your artwork to get AI-powered feedback. Upload multiple pieces to track your progress and artistic development over time.
+          </p>
+        </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -388,8 +421,44 @@ export default function Dashboard() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {artworks.map((artwork) => (
             <Card key={artwork.id}>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle>{artwork.title}</CardTitle>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      disabled={isDeleting && deletingId === artwork.id}
+                    >
+                      {isDeleting && deletingId === artwork.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Artwork</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this artwork? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => {
+                          setDeletingId(artwork.id);
+                          handleDelete(artwork.id);
+                        }}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardHeader>
               <CardContent>
                 <img
@@ -400,6 +469,11 @@ export default function Dashboard() {
                 {artwork.feedback?.[0] && renderFeedback(
                   artwork.feedback[0],
                   artwork.styleComparisons?.asCurrent?.[0]
+                )}
+                {!artwork.styleComparisons?.asCurrent?.[0] && artworks.length > 1 && (
+                  <div className="text-sm text-muted-foreground mt-4 p-4 bg-muted/30 rounded-lg">
+                    <p>Upload your next artwork to see how your style evolves! The AI will analyze your progress and provide insights on your artistic development.</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
