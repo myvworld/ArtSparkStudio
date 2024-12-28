@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,32 +17,36 @@ const SUBSCRIPTION_TIERS = {
     name: "Free",
     price: "$0/month",
     features: [
-      "5 artwork analyses per month",
-      "Basic feedback",
-      "Standard response time",
+      "3 artwork analyses per month",
+      "Basic AI feedback",
+      "Community gallery access",
+      "Standard support",
     ],
     priceId: null,
   },
   basic: {
-    name: "Basic",
-    price: "$9.99/month",
+    name: "Artist",
+    price: "$14.99/month",
     features: [
-      "50 artwork analyses per month",
-      "Detailed feedback",
-      "Priority response time",
-      "Progress tracking",
+      "25 artwork analyses per month",
+      "Detailed AI feedback & suggestions",
+      "Style comparison analysis",
+      "Progress tracking dashboard",
+      "Priority support",
     ],
     priceId: undefined, // Will be set from server config
   },
   pro: {
-    name: "Pro",
-    price: "$29.99/month",
+    name: "Professional",
+    price: "$39.99/month",
     features: [
       "Unlimited artwork analyses",
-      "Advanced feedback with custom focus areas",
-      "Instant response time",
-      "Team collaboration features",
-      "API access",
+      "Advanced AI feedback with custom focus",
+      "Comprehensive style evolution tracking",
+      "Portfolio optimization insights",
+      "Real-time collaboration tools",
+      "24/7 premium support",
+      "Custom API access",
     ],
     priceId: undefined, // Will be set from server config
   },
@@ -77,54 +81,11 @@ export default function Subscription() {
   });
 
   const handleSubscribe = async (tier: string, priceId: string | null) => {
-    if (!priceId) {
-      console.error('Missing price ID for tier:', tier);
-      toast({
-        title: "Error",
-        description: "This subscription plan is currently unavailable",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoadingTier(tier);
-    try {
-      const response = await fetch("/api/subscription/create-checkout-session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ priceId }),
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to create checkout session');
-      }
-
-      const data = await response.json();
-
-      if (!data.url) {
-        throw new Error("No checkout URL received");
-      }
-
-      window.location.href = data.url;
-    } catch (error) {
-      console.error('Subscription error:', {
-        error: error instanceof Error ? error.message : error,
-        tier,
-        priceId
-      });
-
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to start subscription process",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingTier(null);
-    }
+    // For test version, just show a message
+    toast({
+      title: "Test Mode",
+      description: "This is a test version. Payment integration coming soon!",
+    });
   };
 
   if (isLoadingConfig) {
@@ -138,16 +99,13 @@ export default function Subscription() {
   return (
     <div className="container py-12 max-w-6xl">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">Choose Your Plan</h1>
+        <h1 className="text-4xl font-bold mb-4">Choose Your Creative Journey</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Select the perfect plan for your artistic journey. Upgrade anytime to
-          unlock more features and feedback.
+          Select the perfect plan to accelerate your artistic growth with AI-powered feedback and analysis.
         </p>
-        {config?.mode === 'test' && (
-          <div className="mt-4 text-sm text-yellow-600 bg-yellow-50 p-2 rounded">
-            Test Mode Active - Use test card numbers for payments
-          </div>
-        )}
+        <div className="mt-4 text-sm text-yellow-600 bg-yellow-50 p-2 rounded inline-block">
+          🚧 Preview Version - Payment Integration Coming Soon 🚧
+        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-8">
@@ -180,22 +138,13 @@ export default function Subscription() {
               <Button
                 className="w-full"
                 variant={key === "basic" ? "default" : "outline"}
-                disabled={
-                  loadingTier !== null ||
-                  !tier.priceId ||
-                  user?.subscriptionTier === key
-                }
+                disabled={user?.subscriptionTier === key}
                 onClick={() => handleSubscribe(key, tier.priceId)}
               >
-                {loadingTier === key ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : user?.subscriptionTier === key ? (
+                {user?.subscriptionTier === key ? (
                   "Current Plan"
                 ) : (
-                  "Subscribe"
+                  "Preview Plan"
                 )}
               </Button>
             </CardContent>
