@@ -6,8 +6,7 @@ import {
   boolean,
   integer,
   json,
-  varchar,
-  jsonb
+  varchar
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
@@ -35,10 +34,8 @@ export const artworks = pgTable("artworks", {
 export const feedback = pgTable("feedback", {
   id: serial("id").primaryKey(),
   artworkId: integer("artwork_id").references(() => artworks.id).notNull(),
-  analysis: jsonb("analysis").notNull(),
-  suggestions: jsonb("suggestions").notNull(),
-  styleAnalysis: jsonb("style_analysis"),
-  technicalAnalysis: jsonb("technical_analysis"),
+  analysis: json("analysis").notNull(),
+  suggestions: json("suggestions").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

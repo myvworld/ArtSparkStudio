@@ -44,13 +44,51 @@ export default function Dashboard() {
       });
       setDialogOpen(false);
       form.reset();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to upload artwork",
+        description: error.message || "Failed to upload artwork",
         variant: "destructive",
       });
     }
+  };
+
+  const renderFeedback = (feedback: any) => {
+    if (!feedback || !feedback.analysis) return null;
+
+    const analysis = feedback.analysis;
+    return (
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-semibold">AI Analysis</h3>
+          <p className="text-sm text-muted-foreground">
+            {analysis.detailedFeedback || "Analysis not available"}
+          </p>
+        </div>
+
+        {analysis.strengths?.length > 0 && (
+          <div>
+            <h4 className="font-medium text-sm">Strengths</h4>
+            <ul className="list-disc list-inside text-sm text-muted-foreground">
+              {analysis.strengths.map((strength: string, i: number) => (
+                <li key={i}>{strength}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {analysis.improvements?.length > 0 && (
+          <div>
+            <h4 className="font-medium text-sm">Suggestions</h4>
+            <ul className="list-disc list-inside text-sm text-muted-foreground">
+              {analysis.improvements.map((improvement: string, i: number) => (
+                <li key={i}>{improvement}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -176,14 +214,7 @@ export default function Dashboard() {
                   alt={artwork.title}
                   className="rounded-lg mb-4 aspect-square object-cover"
                 />
-                {artwork.feedback && artwork.feedback[0] && (
-                  <div className="space-y-2">
-                    <h3 className="font-semibold">AI Analysis</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {artwork.feedback[0].analysis.detailedFeedback}
-                    </p>
-                  </div>
-                )}
+                {artwork.feedback?.[0] && renderFeedback(artwork.feedback[0])}
               </CardContent>
             </Card>
           ))}
