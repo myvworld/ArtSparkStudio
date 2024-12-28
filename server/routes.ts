@@ -4,12 +4,12 @@ import multer from "multer";
 import { setupAuth } from "./auth";
 import { analyzeArtwork, compareArtworkStyles } from "./openai";
 import { db } from "@db";
-import { artworks, feedback, styleComparisons } from "@db/schema";
+import { artworks, feedback, styleComparisons, users } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2024-12-18.acacia",
 });
 
 const storage = multer.memoryStorage();
@@ -47,7 +47,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).send("Artwork not found");
       }
 
-      if (artwork.userId !== req.user!.id) {
+      const userId = req.user?.id;
+      if (!userId || artwork.userId !== userId) {
         return res.status(403).send("Not authorized to delete this artwork");
       }
 
@@ -83,14 +84,19 @@ export function registerRoutes(app: Express): Server {
 
       const { title, goals } = req.body;
       const imageBase64 = req.file.buffer.toString("base64");
+      const userId = req.user?.id;
 
-      console.log(`Processing artwork upload for user ${req.user!.id}`);
+      if (!userId) {
+        return res.status(401).send("User ID not found");
+      }
+
+      console.log(`Processing artwork upload for user ${userId}`);
 
       // Store artwork
       const [artwork] = await db
         .insert(artworks)
         .values({
-          userId: req.user!.id,
+          userId,
           title,
           imageUrl: `data:${req.file.mimetype};base64,${imageBase64}`,
           goals,
@@ -101,7 +107,7 @@ export function registerRoutes(app: Express): Server {
       const [previousArtwork] = await db
         .select()
         .from(artworks)
-        .where(eq(artworks.userId, req.user!.id))
+        .where(eq(artworks.userId, userId))
         .orderBy(desc(artworks.createdAt))
         .limit(1)
         .offset(1);
@@ -115,10 +121,10 @@ export function registerRoutes(app: Express): Server {
         .insert(feedback)
         .values({
           artworkId: artwork.id,
-          analysis: analysis,
+          analysis,
           suggestions: {
-            improvements: analysis.improvements,
-            strengths: analysis.strengths,
+            strengths: analysis.strengths || [],
+            improvements: analysis.improvements || [],
           },
         })
         .returning();
@@ -158,13 +164,18 @@ export function registerRoutes(app: Express): Server {
         return res.status(401).send("Not authenticated");
       }
 
-      console.log(`Fetching artworks for user ${req.user!.id}`);
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).send("User ID not found");
+      }
+
+      console.log(`Fetching artworks for user ${userId}`);
 
       // Get artworks with feedback and style comparisons
       const userArtworks = await db
         .select()
         .from(artworks)
-        .where(eq(artworks.userId, req.user!.id))
+        .where(eq(artworks.userId, userId))
         .orderBy(desc(artworks.createdAt));
 
       // Fetch feedback and comparisons for each artwork
@@ -211,6 +222,12 @@ export function registerRoutes(app: Express): Server {
     }
 
     const { priceId } = req.body;
+    const userId = req.user?.id;
+    const stripeCustomerId = req.user?.stripeCustomerId;
+
+    if (!userId) {
+      return res.status(401).send("User ID not found");
+    }
 
     try {
       const session = await stripe.checkout.sessions.create({
@@ -224,7 +241,7 @@ export function registerRoutes(app: Express): Server {
         ],
         success_url: `${process.env.REPLIT_DOMAINS?.split(",")[0]}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.REPLIT_DOMAINS?.split(",")[0]}/subscription`,
-        customer: req.user!.stripeCustomerId,
+        customer: stripeCustomerId || undefined,
       });
 
       res.json({ url: session.url });
