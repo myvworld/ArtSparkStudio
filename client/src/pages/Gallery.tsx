@@ -22,8 +22,9 @@ interface GalleryArtwork {
   createdAt: string;
   username: string;
   userId: number;
-  averageRating: number | undefined;
-  commentCount: number | undefined;
+  averageRating: number;
+  commentCount: number;
+  userRating: number | null;
 }
 
 export default function Gallery() {
@@ -32,11 +33,8 @@ export default function Gallery() {
   const [comment, setComment] = useState("");
   const { comment: submitComment, rate: submitRating, isCommenting, isRating } = useCommunity();
 
-  const { data: artworks, isLoading } = useQuery<GalleryArtwork[]>({
+  const { data: artworks, isLoading, refetch } = useQuery<GalleryArtwork[]>({
     queryKey: ["/api/gallery"],
-    onSuccess: (data) => {
-      console.log('Gallery data:', data); // Add logging to check data format
-    },
   });
 
   const handleComment = async (artworkId: number) => {
@@ -49,6 +47,7 @@ export default function Gallery() {
         description: "Comment added successfully",
       });
       setComment("");
+      refetch(); // Refresh gallery data
     } catch (error: any) {
       toast({
         title: "Error",
@@ -65,6 +64,7 @@ export default function Gallery() {
         title: "Success",
         description: "Rating submitted successfully",
       });
+      refetch(); // Refresh gallery data
     } catch (error: any) {
       toast({
         title: "Error",
@@ -111,9 +111,7 @@ export default function Gallery() {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center">
                       <Star className="w-4 h-4 mr-1" />
-                      {typeof artwork.averageRating === 'number'
-                        ? artwork.averageRating.toFixed(1)
-                        : '0.0'}
+                      {artwork.averageRating ? artwork.averageRating.toFixed(1) : '0.0'}
                     </div>
                     <div className="flex items-center">
                       <MessageSquare className="w-4 h-4 mr-1" />
@@ -164,7 +162,13 @@ export default function Gallery() {
                     disabled={isRating}
                     onClick={() => selectedArtwork && handleRating(selectedArtwork.id, score)}
                   >
-                    <Star className={`w-4 h-4 ${selectedArtwork && score <= (selectedArtwork.averageRating || 0) ? 'fill-current' : ''}`} />
+                    <Star 
+                      className={`w-4 h-4 ${
+                        selectedArtwork && 
+                        (score <= (selectedArtwork.userRating || 0) ? 'fill-primary' : 
+                         score <= selectedArtwork.averageRating ? 'fill-muted' : '')
+                      }`} 
+                    />
                   </Button>
                 ))}
               </div>

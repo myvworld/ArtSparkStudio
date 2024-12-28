@@ -45,7 +45,7 @@ export function registerRoutes(app: Express): Server {
     next();
   });
 
-  // Community gallery route
+  // Add user's rating to gallery response
   app.get("/api/gallery", async (req, res) => {
     try {
       const publicArtworks = await db
@@ -58,6 +58,9 @@ export function registerRoutes(app: Express): Server {
           userId: users.id,
           averageRating: sql<number>`CAST(COALESCE(AVG(${ratings.score}), 0) AS DECIMAL(10,1))`,
           commentCount: sql<number>`COUNT(DISTINCT ${comments.id})`,
+          userRating: req.user
+            ? sql<number>`MAX(CASE WHEN ${ratings.userId} = ${req.user.id} THEN ${ratings.score} END)`
+            : sql<null>`NULL`,
         })
         .from(artworks)
         .innerJoin(users, eq(users.id, artworks.userId))
