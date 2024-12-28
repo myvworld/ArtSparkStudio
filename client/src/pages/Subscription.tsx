@@ -47,7 +47,21 @@ export default function Subscription() {
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
   const handleSubscribe = async (tier: string, priceId: string) => {
-    if (!priceId) return;
+    if (!priceId) {
+      console.error('Missing price ID for tier:', tier);
+      toast({
+        title: "Error",
+        description: "Invalid subscription plan",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log('Starting subscription process:', {
+      tier,
+      priceId,
+      userId: user?.id
+    });
 
     setLoadingTier(tier);
     try {
@@ -60,18 +74,33 @@ export default function Subscription() {
         credentials: "include",
       });
 
+      console.log('Subscription API response:', {
+        status: response.status,
+        ok: response.ok
+      });
+
       if (!response.ok) {
-        throw new Error(await response.text());
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to create checkout session');
       }
 
-      const { url } = await response.json();
-      if (url) {
-        window.location.href = url;
-      } else {
+      const data = await response.json();
+      console.log('Checkout session created:', {
+        hasUrl: !!data.url
+      });
+
+      if (!data.url) {
         throw new Error("No checkout URL received");
       }
+
+      window.location.href = data.url;
     } catch (error) {
-      console.error('Subscription error:', error);
+      console.error('Subscription error:', {
+        error: error instanceof Error ? error.message : error,
+        tier,
+        priceId
+      });
+
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to start subscription process",
@@ -81,6 +110,12 @@ export default function Subscription() {
       setLoadingTier(null);
     }
   };
+
+  // Debug log subscription tiers
+  console.log('Available subscription tiers:', {
+    basic: SUBSCRIPTION_TIERS.basic.priceId,
+    pro: SUBSCRIPTION_TIERS.pro.priceId
+  });
 
   return (
     <div className="container py-12 max-w-6xl">

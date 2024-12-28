@@ -240,22 +240,43 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Subscription routes
+  // Subscription routes with enhanced logging
   app.post("/api/subscription/create-checkout-session", async (req, res) => {
     try {
+      console.log('Received checkout session request:', {
+        userId: req.user?.id,
+        body: req.body
+      });
+
       if (!req.isAuthenticated()) {
+        console.log('User not authenticated');
         return res.status(401).send("Not authenticated");
       }
 
       const { priceId } = req.body;
       if (!priceId) {
+        console.log('Missing priceId in request');
         return res.status(400).send("Price ID is required");
       }
 
+      console.log('Creating checkout session with:', {
+        userId: req.user.id,
+        priceId: priceId
+      });
+
       const session = await createStripeCheckoutSession(req.user.id, priceId);
+      console.log('Checkout session created:', {
+        sessionId: session.id,
+        url: session.url
+      });
+
       res.json({ url: session.url });
     } catch (error) {
-      console.error("Error creating checkout session:", error);
+      console.error("Error creating checkout session:", {
+        error: error instanceof Error ? error.message : error,
+        userId: req.user?.id,
+        body: req.body
+      });
       res.status(500).send("Error creating checkout session");
     }
   });
@@ -263,16 +284,22 @@ export function registerRoutes(app: Express): Server {
   // Stripe webhook endpoint
   app.post("/api/stripe/webhook", express.raw({ type: 'application/json' }), async (req, res) => {
     try {
+      console.log('Received Stripe webhook');
       const signature = req.headers["stripe-signature"];
       if (!signature) {
+        console.log('Missing Stripe signature');
         return res.status(400).send("Stripe signature is required");
       }
 
       const result = await handleStripeWebhook(signature, req.body);
+      console.log('Webhook processed successfully');
       res.json(result);
     } catch (err) {
       const error = err as Error;
-      console.error("Error handling webhook:", error);
+      console.error("Error handling webhook:", {
+        error: error.message,
+        type: req.headers["stripe-webhook-type"]
+      });
       res.status(400).send(`Webhook Error: ${error.message}`);
     }
   });
