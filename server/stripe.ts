@@ -16,6 +16,7 @@ const SUBSCRIPTION_PRICES = {
 };
 
 export async function createStripeCustomer(userId: number, email: string) {
+  console.log(`Creating Stripe customer for user ${userId} with email ${email}`);
   const customer = await stripe.customers.create({
     email,
     metadata: {
@@ -28,10 +29,12 @@ export async function createStripeCustomer(userId: number, email: string) {
     .set({ stripeCustomerId: customer.id })
     .where(eq(users.id, userId));
 
+  console.log(`Created Stripe customer: ${customer.id}`);
   return customer;
 }
 
 export async function createStripeCheckoutSession(userId: number, priceId: string) {
+  console.log(`Creating checkout session for user ${userId} with price ${priceId}`);
   const [user] = await db
     .select()
     .from(users)
@@ -66,6 +69,7 @@ export async function createStripeCheckoutSession(userId: number, priceId: strin
     },
   });
 
+  console.log(`Created checkout session: ${session.id}`);
   return session;
 }
 
@@ -90,6 +94,7 @@ export async function handleStripeWebhook(
       webhookSecret
     );
 
+    console.log(`Processing Stripe webhook event: ${event.type}`);
     const { object } = event.data;
     const { customer } = object as any;
 
@@ -112,6 +117,8 @@ export async function handleStripeWebhook(
             subscriptionTier: subscription.items.data[0].price.id === SUBSCRIPTION_PRICES.pro ? "pro" : "basic",
           })
           .where(eq(users.id, user.id));
+
+        console.log(`Updated user ${user.id} subscription tier`);
         break;
       }
       case "customer.subscription.deleted": {
@@ -128,6 +135,8 @@ export async function handleStripeWebhook(
           .update(users)
           .set({ subscriptionTier: "free" })
           .where(eq(users.id, user.id));
+
+        console.log(`Reset user ${user.id} to free tier`);
         break;
       }
     }
