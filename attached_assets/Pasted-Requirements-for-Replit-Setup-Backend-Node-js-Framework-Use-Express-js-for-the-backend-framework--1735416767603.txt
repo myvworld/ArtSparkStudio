@@ -1,0 +1,69 @@
+Requirements for Replit Setup
+Backend:
+Node.js Framework:
+Use Express.js for the backend framework.
+Add middleware for handling JSON requests and CORS.
+Dependencies:
+Install the following packages:
+express: For server setup.
+mongoose: For MongoDB connection and user data storage.
+dotenv: For environment variable management.
+jsonwebtoken: For authentication (JWT).
+bcryptjs: For password hashing.
+body-parser: For parsing incoming JSON requests.
+stripe: For handling payments in the premium plan.
+cors: To allow cross-origin requests.
+Folder Structure:
+Include the following structure:
+bash
+Copy code
+backend/
+├── src/
+│   ├── controllers/   # Business logic
+│   ├── routes/        # API endpoints
+│   ├── models/        # MongoDB schemas
+│   ├── middlewares/   # Authentication and validation
+│   ├── utils/         # Helper functions
+│   ├── app.js         # Express app initialization
+│   ├── server.js      # Main server entry point
+├── .env               # Environment variables
+├── package.json       # Node.js dependencies and scripts
+Features:
+Implement basic routes for user authentication:
+/signup: Register a new user.
+/login: Authenticate an existing user.
+/change_password: Change user password.
+Set up database schemas for:
+Users (name, email, hashed password, subscription level).
+Art feedback data (image references, user goals, AI suggestions).
+Frontend:
+Framework:
+Use React.js for the frontend.
+Set up basic routing with React Router.
+Dependencies:
+Install the following packages:
+react-router-dom: For routing.
+axios: For API calls.
+dotenv: For managing API URLs.
+Folder Structure:
+Include the following structure:
+bash
+Copy code
+frontend/
+├── src/
+│   ├── components/    # Reusable UI components
+│   ├── pages/         # Specific app pages
+│   ├── App.js         # Main React component
+│   ├── index.js       # React app entry point
+├── public/
+│   ├── index.html     # Base HTML file
+├── .env               # Environment variables
+├── package.json       # React dependencies and scripts
+Pages:
+Home: Overview of ArtSpark features.
+Dashboard: Upload artwork and view AI feedback.
+Subscription: Manage user subscription levels (Freemium, Personal, Business).
+Settings: Update profile, change password.
+Database:
+Use MongoDB (Atlas or local setup).
+Create a dbConfig.js file for managing database connection strings.
