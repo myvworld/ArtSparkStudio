@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Artwork } from "@db/schema";
+import type { Artwork, Feedback } from "@db/schema";
 
 interface UploadArtworkData {
   title: string;
@@ -7,10 +7,14 @@ interface UploadArtworkData {
   image: File;
 }
 
+interface ArtworkWithFeedback extends Artwork {
+  feedback?: Feedback[];
+}
+
 export function useArtwork() {
   const queryClient = useQueryClient();
 
-  const { data: artworks, isLoading } = useQuery<Artwork[]>({
+  const { data: artworks, isLoading } = useQuery<ArtworkWithFeedback[]>({
     queryKey: ["artworks"],
     queryFn: async () => {
       const response = await fetch("/api/artwork", {

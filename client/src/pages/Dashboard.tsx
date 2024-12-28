@@ -117,9 +117,50 @@ export default function Dashboard() {
             <p className="text-muted-foreground mb-4">
               Upload your first piece to get AI-powered feedback
             </p>
-            <DialogTrigger asChild>
-              <Button>Upload Artwork</Button>
-            </DialogTrigger>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>Upload Artwork</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Upload Artwork</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleUpload} className="space-y-4">
+                  <div>
+                    <Input
+                      name="title"
+                      placeholder="Artwork Title"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Textarea
+                      name="goals"
+                      placeholder="What are your goals for this piece? (optional)"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      type="file"
+                      name="image"
+                      accept="image/*"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" disabled={isUploading} className="w-full">
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      "Upload & Analyze"
+                    )}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       ) : (
@@ -135,7 +176,7 @@ export default function Dashboard() {
                   alt={artwork.title}
                   className="rounded-lg mb-4 aspect-square object-cover"
                 />
-                {artwork.feedback?.[0] && (
+                {artwork.feedback && artwork.feedback[0] && (
                   <div className="space-y-2">
                     <h3 className="font-semibold">AI Analysis</h3>
                     <p className="text-sm text-muted-foreground">
