@@ -499,20 +499,41 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-between mb-4">
-                  <input
-                    type="text"
-                    defaultValue={artwork.title}
-                    className="text-xl font-semibold bg-transparent border-none hover:border-gray-300 focus:border-gray-300 focus:ring-0 w-full"
-                    onBlur={(e) => {
-                      if (e.target.value !== artwork.title) {
-                        updateTitle({
-                          artworkId: artwork.id,
-                          title: e.target.value
-                        });
-                      }
-                    }}
-                  />
+                <div className="flex items-center justify-between mb-4 group">
+                  <div className="flex items-center gap-2 w-full">
+                    <input
+                      type="text"
+                      defaultValue={artwork.title}
+                      className="text-xl font-semibold bg-transparent border border-transparent hover:border-gray-700 focus:border-purple-500 rounded px-2 py-1 w-full transition-all"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const target = e.target as HTMLInputElement;
+                          if (target.value !== artwork.title) {
+                            updateTitle({
+                              artworkId: artwork.id,
+                              title: target.value
+                            });
+                          }
+                        }
+                      }}
+                    />
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        const input = e.currentTarget.parentElement?.querySelector('input');
+                        if (input && input.value !== artwork.title) {
+                          updateTitle({
+                            artworkId: artwork.id,
+                            title: input.value
+                          });
+                        }
+                      }}
+                    >
+                      Save
+                    </Button>
+                  </div>
                 </div>
                 <img
                   src={artwork.imageUrl}
