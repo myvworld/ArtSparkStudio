@@ -270,9 +270,8 @@ export default function Dashboard() {
 
   const handleToggleVisibility = async (artworkId: number, currentVisibility: boolean) => {
     try {
-      if (!artworkId) return;
       setTogglingId(artworkId);
-      await toggleVisibility({ artworkId, isPublic: currentVisibility });
+      await toggleVisibility({ artworkId, isPublic: !currentVisibility });
       toast({
         title: "Success",
         description: `Artwork ${currentVisibility ? 'removed from' : 'shared to'} community gallery`,

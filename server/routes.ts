@@ -256,6 +256,34 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Delete artwork endpoint
+  app.delete("/api/artwork/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const artworkId = parseInt(req.params.id);
+      if (isNaN(artworkId)) {
+        return res.status(400).json({ error: "Invalid artwork ID" });
+      }
+
+      await db
+        .delete(artworks)
+        .where(
+          and(
+            eq(artworks.id, artworkId),
+            eq(artworks.userId, req.user.id)
+          )
+        );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting artwork:', error);
+      res.status(500).json({ error: "Error deleting artwork" });
+    }
+  });
+
   // Add logging to the /api/artwork endpoint
   app.get("/api/artwork", async (req, res) => {
     try {
