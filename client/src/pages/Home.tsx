@@ -9,15 +9,13 @@ import { useState, useEffect } from "react";
 export default function Home() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const { data, isError } = useQuery({
+  const { data } = useQuery({
     queryKey: ["featuredArtwork"],
     queryFn: async () => {
       const response = await fetch("/api/featured-artwork");
       if (!response.ok) throw new Error("Failed to fetch featured artwork");
       return response.json();
     },
-    retry: 1,
-    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   useEffect(() => {
@@ -60,24 +58,16 @@ export default function Home() {
               <p className="text-white text-lg font-medium">Get insights on pieces like this</p>
             </div>
             <div className="relative w-full h-[500px]">
-              {!isError && data?.map((artwork, index) => (
+              {data?.map((artwork, index) => (
                 <img 
                   key={artwork.id}
                   src={artwork.imageUrl} 
                   alt={artwork.title}
-                  onError={(e) => {
-                    e.currentTarget.src = '/placeholder.jpg';
-                  }}
                   className={`absolute inset-0 w-full h-full object-cover rounded-lg shadow-2xl transition-opacity duration-1000 ${
                     index === currentImageIndex ? 'opacity-100' : 'opacity-0'
                   }`}
                 />
               ))}
-              {isError && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg">
-                  <p className="text-gray-400">Unable to load images</p>
-                </div>
-              )}
               {data && data[currentImageIndex] && (
                 <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm text-white bg-black/50 px-4 py-2 rounded-full">
                   Artwork by {data[currentImageIndex].username}
