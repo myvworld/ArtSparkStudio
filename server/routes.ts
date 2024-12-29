@@ -254,8 +254,6 @@ export function registerRoutes(app: Express): Server {
                 .insert(feedback)
                 .values(feedbackToInsert)
                 .returning();
-              
-              const feedbackEntry = feedbackEntries[0];
 
             console.log('Feedback stored successfully:', {
               feedbackId: feedbackEntry.id,
