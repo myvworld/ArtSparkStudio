@@ -141,31 +141,31 @@ export function registerRoutes(app: Express): Server {
                   artworkId: artwork.id,
                   analysis: {
                     style: {
-                      current: analysis.style?.toString() || "Unknown style",
-                      influences: analysis.influences || [],
-                      similarArtists: analysis.similarArtists || [],
-                      period: analysis.period || null,
-                      movement: analysis.movement || null
+                      current: typeof analysis.style === 'object' ? analysis.style.current : String(analysis.style || "Unknown style"),
+                      influences: Array.isArray(analysis.style?.influences) ? analysis.style.influences : [],
+                      similarArtists: Array.isArray(analysis.style?.similarArtists) ? analysis.style.similarArtists : [],
+                      period: analysis.style?.period || null,
+                      movement: analysis.style?.movement || null
                     },
                     composition: {
-                      structure: analysis.composition?.toString() || "Not analyzed",
-                      balance: analysis.balance || "Not analyzed",
-                      colorTheory: analysis.colorTheory || "Not analyzed", 
-                      perspective: analysis.perspective || null,
-                      focusPoints: analysis.focusPoints || [],
-                      dynamicElements: analysis.dynamicElements || []
+                      structure: typeof analysis.composition === 'object' ? analysis.composition.structure : String(analysis.composition || "Not analyzed"),
+                      balance: analysis.composition?.balance || "Not analyzed",
+                      colorTheory: analysis.composition?.colorTheory || "Not analyzed",
+                      perspective: analysis.composition?.perspective || null,
+                      focusPoints: Array.isArray(analysis.composition?.focusPoints) ? analysis.composition.focusPoints : [],
+                      dynamicElements: Array.isArray(analysis.composition?.dynamicElements) ? analysis.composition.dynamicElements : []
                     },
                     technique: {
-                      medium: analysis.technique?.toString() || "Not specified",
-                      execution: analysis.execution || "Not analyzed",
-                      skillLevel: analysis.skillLevel || "Not analyzed",
-                      uniqueApproaches: analysis.uniqueApproaches || [],
-                      materialUsage: analysis.materialUsage || null
+                      medium: typeof analysis.technique === 'object' ? analysis.technique.medium : String(analysis.technique || "Not specified"),
+                      execution: analysis.technique?.execution || "Not analyzed",
+                      skillLevel: analysis.technique?.skillLevel || "Not analyzed",
+                      uniqueApproaches: Array.isArray(analysis.technique?.uniqueApproaches) ? analysis.technique.uniqueApproaches : [],
+                      materialUsage: analysis.technique?.materialUsage || null
                     },
                     strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
                     improvements: Array.isArray(analysis.improvements) ? analysis.improvements : [],
-                    detailedFeedback: analysis.detailedFeedback?.toString() || "No detailed feedback available",
-                    technicalSuggestions: analysis.technicalSuggestions || [],
+                    detailedFeedback: String(analysis.detailedFeedback || "No detailed feedback available"),
+                    technicalSuggestions: Array.isArray(analysis.technicalSuggestions) ? analysis.technicalSuggestions : [],
                     learningResources: []
                   },
                   suggestions: Array.isArray(analysis?.suggestions) ? analysis.suggestions
