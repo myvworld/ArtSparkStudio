@@ -11,7 +11,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
         <div className="relative max-w-5xl mx-auto w-full text-center">
           <div className="space-y-8">
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 text-white bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-300">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 text-white bg-clip-text text-transparent bg-gradient-to-br from-purple-100 via-white to-purple-200">
               Unleash Your Creativity with AI
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-gray-200 max-w-2xl mx-auto leading-relaxed">
