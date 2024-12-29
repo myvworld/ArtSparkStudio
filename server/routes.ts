@@ -9,7 +9,8 @@ import {
   comments,
   ratings,
   feedback,
-  styleComparisons
+  styleComparisons,
+  subscriptionPlans
 } from "@db/schema";
 import { createStripeCheckoutSession, handleStripeWebhook, SUBSCRIPTION_PRICES } from "./stripe";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -17,6 +18,13 @@ import express from 'express';
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+
+function requireAdmin(req: any, res: any, next: any) {
+  if (!req.isAuthenticated() || !req.user.isAdmin) {
+    return res.status(403).send("Unauthorized");
+  }
+  next();
+}
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -311,6 +319,82 @@ export function registerRoutes(app: Express): Server {
         type: req.headers["stripe-webhook-type"]
       });
       res.status(400).send(`Webhook Error: ${error.message}`);
+    }
+  });
+
+  // Admin routes
+  app.get("/api/admin/subscription-plans", requireAdmin, async (req, res) => {
+    try {
+      const plans = await db
+        .select()
+        .from(subscriptionPlans)
+        .orderBy(subscriptionPlans.monthlyPrice);
+
+      res.json(plans);
+    } catch (error) {
+      console.error("Error fetching subscription plans:", error);
+      res.status(500).send("Error fetching subscription plans");
+    }
+  });
+
+  app.put("/api/admin/subscription-plans/:id", requireAdmin, async (req, res) => {
+    try {
+      const planId = parseInt(req.params.id);
+      if (isNaN(planId)) {
+        return res.status(400).send("Invalid plan ID");
+      }
+
+      const {
+        name,
+        description,
+        monthlyPrice,
+        yearlyPrice,
+        monthlyUploadLimit,
+        features,
+        isActive,
+      } = req.body;
+
+      const [updatedPlan] = await db
+        .update(subscriptionPlans)
+        .set({
+          name,
+          description,
+          monthlyPrice,
+          yearlyPrice,
+          monthlyUploadLimit,
+          features,
+          isActive,
+          updatedAt: new Date(),
+        })
+        .where(eq(subscriptionPlans.id, planId))
+        .returning();
+
+      res.json(updatedPlan);
+    } catch (error) {
+      console.error("Error updating subscription plan:", error);
+      res.status(500).send("Error updating subscription plan");
+    }
+  });
+
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const allUsers = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          subscriptionTier: users.subscriptionTier,
+          monthlyUploadsUsed: users.monthlyUploadsUsed,
+          tokenBalance: users.tokenBalance,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .orderBy(desc(users.createdAt));
+
+      res.json(allUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).send("Error fetching users");
     }
   });
 

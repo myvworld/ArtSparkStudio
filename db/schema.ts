@@ -7,7 +7,8 @@ import {
   integer,
   json,
   varchar,
-  decimal
+  decimal,
+  foreignKey
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
@@ -137,6 +138,22 @@ export const styleComparisons = pgTable("style_comparisons", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  code: varchar("code", { length: 50 }).notNull().unique(), 
+  description: text("description"),
+  monthlyPrice: decimal("monthly_price", { precision: 10, scale: 2 }).notNull(),
+  yearlyPrice: decimal("yearly_price", { precision: 10, scale: 2 }),
+  stripePriceIdMonthly: text("stripe_price_id_monthly"),
+  stripePriceIdYearly: text("stripe_price_id_yearly"),
+  monthlyUploadLimit: integer("monthly_upload_limit").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  features: json("features").$type<string[]>().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const artworkRelations = relations(artworks, ({ one, many }) => ({
   user: one(users, {
     fields: [artworks.userId],
@@ -149,10 +166,14 @@ export const artworkRelations = relations(artworks, ({ one, many }) => ({
   previousComparisons: many(styleComparisons, { relationName: "previousArtwork" }),
 }));
 
-export const userRelations = relations(users, ({ many }) => ({
+export const userRelations = relations(users, ({ many, one }) => ({
   artworks: many(artworks),
   tokenPurchases: many(tokenPurchases),
   portfolioReviews: many(portfolioReviews),
+  subscriptionPlan: one(subscriptionPlans, {
+    fields: [users.subscriptionTier],
+    references: [subscriptionPlans.code],
+  }),
 }));
 
 export const tokenPackageRelations = relations(tokenPackages, ({ many }) => ({
@@ -201,6 +222,10 @@ export const styleComparisonRelations = relations(styleComparisons, ({ one }) =>
   }),
 }));
 
+export const subscriptionPlanRelations = relations(subscriptionPlans, ({ many }) => ({
+  users: many(users),
+}));
+
 
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
@@ -246,3 +271,8 @@ export const insertPortfolioReviewSchema = createInsertSchema(portfolioReviews);
 export const selectPortfolioReviewSchema = createSelectSchema(portfolioReviews);
 export type PortfolioReview = typeof portfolioReviews.$inferSelect;
 export type NewPortfolioReview = typeof portfolioReviews.$inferInsert;
+
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans);
+export const selectSubscriptionPlanSchema = createSelectSchema(subscriptionPlans);
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type NewSubscriptionPlan = typeof subscriptionPlans.$inferInsert;
