@@ -186,7 +186,7 @@ export function registerRoutes(app: Express): Server {
                 analysis: feedbackData.analysis // Pass the analysis object directly
               };
 
-              const feedbackEntry = await db
+              const [feedbackEntry] = await db
                 .insert(feedback)
                 .values(feedbackToInsert)
                 .returning({
@@ -194,8 +194,7 @@ export function registerRoutes(app: Express): Server {
                   artworkId: feedback.artworkId,
                   analysis: feedback.analysis,
                   suggestions: feedback.suggestions
-                })
-                .get();
+                });
 
             console.log('Feedback stored successfully:', {
               feedbackId: feedbackEntry.id,
