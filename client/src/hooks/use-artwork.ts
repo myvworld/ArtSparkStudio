@@ -163,8 +163,10 @@ export function useArtwork() {
     upload: uploadMutation.mutateAsync,
     delete: deleteMutation.mutateAsync,
     toggleVisibility: toggleVisibilityMutation.mutateAsync,
+    updateTitle: updateTitleMutation.mutateAsync,
     isUploading: uploadMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isTogglingVisibility: toggleVisibilityMutation.isPending,
+    isUpdatingTitle: updateTitleMutation.isPending,
   };
 }

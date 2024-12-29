@@ -246,12 +246,11 @@ const renderFeedback = (feedback: any, styleComparison: any) => {
 };
 
 export default function Dashboard() {
-  const { artworks, upload, delete: deleteArtwork, toggleVisibility, isLoading, isUploading, isDeleting, isTogglingVisibility } = useArtwork();
+  const { artworks, upload, delete: deleteArtwork, toggleVisibility, updateTitle, isLoading, isUploading, isDeleting, isTogglingVisibility, isUpdatingTitle } = useArtwork();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
-  const updateTitleMutation = useUpdateArtworkTitle(); // Added mutation hook
 
   const handleDelete = async (artworkId: number) => {
     try {
@@ -507,7 +506,7 @@ export default function Dashboard() {
                     className="text-xl font-semibold bg-transparent border-none hover:border-gray-300 focus:border-gray-300 focus:ring-0 w-full"
                     onBlur={(e) => {
                       if (e.target.value !== artwork.title) {
-                        updateTitleMutation.mutate({
+                        updateTitle({
                           artworkId: artwork.id,
                           title: e.target.value
                         });
