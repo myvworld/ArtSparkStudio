@@ -208,7 +208,16 @@ export function registerRoutes(app: Express): Server {
               const feedbackToInsert = {
                 artworkId: feedbackData.artworkId,
                 suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
-                analysis: feedbackData.analysis // Pass the object directly, Drizzle will handle serialization
+                analysis: {
+                  style: feedbackData.analysis.style,
+                  composition: feedbackData.analysis.composition,
+                  technique: feedbackData.analysis.technique,
+                  strengths: feedbackData.analysis.strengths || [],
+                  improvements: feedbackData.analysis.improvements || [],
+                  detailedFeedback: feedbackData.analysis.detailedFeedback || '',
+                  technicalSuggestions: feedbackData.analysis.technicalSuggestions || [],
+                  learningResources: feedbackData.analysis.learningResources || []
+                }
               };
 
               const feedbackEntries = await db
