@@ -4,7 +4,8 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: async ({ queryKey }) => {
-        const res = await fetch(queryKey[0] as string, {
+        const baseUrl = import.meta.env.DEV ? "http://0.0.0.0:5000" : "";
+        const res = await fetch(`${baseUrl}${queryKey[0]}`, {
           credentials: "include",
         });
 
