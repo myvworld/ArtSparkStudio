@@ -5,24 +5,29 @@ import type { ArtAnalysis } from "./types";
 function initializeOpenAI() {
   if (!process.env.OPENAI_API_KEY) {
     console.error("OPENAI_API_KEY environment variable is not set");
-    process.exit(1);
+    throw new Error("OpenAI API key not configured");
   }
 
   try {
-    const openai = new OpenAI({ 
+    return new OpenAI({ 
       apiKey: process.env.OPENAI_API_KEY,
       maxRetries: 3,
       timeout: 30000
     });
-    console.log("OpenAI client initialized successfully");
-    return openai;
   } catch (error) {
     console.error("Failed to initialize OpenAI client:", error);
-    process.exit(1);
+    throw error;
   }
 }
 
-const openai = initializeOpenAI();
+let openai: OpenAI;
+try {
+  openai = initializeOpenAI();
+  console.log("OpenAI client initialized successfully");
+} catch (error) {
+  console.error("Failed to initialize OpenAI:", error);
+  throw error;
+}
 
 export async function analyzeArtwork(
   imageBase64: string,
@@ -39,20 +44,20 @@ export async function analyzeArtwork(
     // Clean the base64 string
     const base64Image = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
 
-    console.log("Preparing OpenAI request");
+    console.log("Preparing OpenAI request for image analysis");
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: "gpt-4-vision-preview",
       messages: [
         {
           role: "system",
-          content: "You are an expert art critic and educator. Analyze the artwork and provide detailed feedback in a structured format."
+          content: "You are an expert art critic and educator. Analyze the artwork and provide detailed feedback in a structured format including technical suggestions."
         },
         {
           role: "user",
           content: [
             { 
               type: "text", 
-              text: `Analyze this artwork titled "${title}"${goals ? ` with the artist's goals: ${goals}` : ''}. Provide a comprehensive analysis including style, composition, technique, strengths, and areas for improvement.`
+              text: `Analyze this artwork titled "${title}"${goals ? ` with the artist's goals: ${goals}` : ''}. Provide a comprehensive analysis including style, composition, technique, strengths, and areas for improvement. Include specific technical suggestions for improvement.`
             },
             {
               type: "image_url",
@@ -102,7 +107,8 @@ export async function analyzeArtwork(
       improvements: analysis.improvements || [],
       detailedFeedback: analysis.detailedFeedback || "Detailed feedback unavailable",
       technicalSuggestions: analysis.technicalSuggestions || [],
-      learningResources: analysis.learningResources || []
+      learningResources: analysis.learningResources || [],
+      suggestions: analysis.technicalSuggestions || ["No specific suggestions available"] // Ensure suggestions is never null
     };
   } catch (error: any) {
     console.error("Artwork analysis failed:", {
@@ -111,7 +117,9 @@ export async function analyzeArtwork(
       title,
       hasGoals: !!goals
     });
-    throw new Error(`Failed to analyze artwork: ${error.message}`);
+
+    // Return a mock analysis with error status if the real analysis fails
+    return getMockAnalysis("Analysis Failed - Service Error");
   }
 }
 
@@ -142,7 +150,8 @@ function getMockAnalysis(status: string): ArtAnalysis {
     strengths: [],
     improvements: [],
     detailedFeedback: "We encountered an error while analyzing your artwork. Please try again later.",
-    technicalSuggestions: [],
-    learningResources: []
+    technicalSuggestions: ["Service temporarily unavailable"],
+    learningResources: [],
+    suggestions: ["Service temporarily unavailable"] // Ensure suggestions is never null
   };
 }
