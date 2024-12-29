@@ -53,22 +53,19 @@ export async function analyzeArtwork(
       imageSize: base64Image.length
     });
 
-    const systemPrompt = "You are an expert art critic and educator. Analyze the artwork and provide detailed feedback in a structured JSON format including style, composition, technique, strengths, improvements, and technical suggestions.";
-    const userPrompt = `Analyze this artwork titled "${title}"${goals ? ` with the artist's goals: ${goals}` : ''}. Provide a comprehensive analysis including style, composition, technique, strengths, and areas for improvement. Include specific technical suggestions for improvement.`;
-
     const response = await openai.chat.completions.create({
       model: "gpt-4-turbo",
       messages: [
         {
           role: "system",
-          content: systemPrompt
+          content: "You are an expert art critic and educator. Analyze the artwork and provide detailed feedback in a structured JSON format including style, composition, technique, strengths, improvements, and technical suggestions."
         },
         {
           role: "user",
           content: [
             { 
               type: "text", 
-              text: userPrompt
+              text: `Analyze this artwork titled "${title}"${goals ? ` with the artist's goals: ${goals}` : ''}. Provide a comprehensive analysis including style, composition, technique, strengths, and areas for improvement. Include specific technical suggestions for improvement.`
             },
             {
               type: "image_url",

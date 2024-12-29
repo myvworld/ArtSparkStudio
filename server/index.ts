@@ -8,6 +8,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Enhanced request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -38,36 +39,65 @@ app.use((req, res, next) => {
   next();
 });
 
+// Global error handlers with detailed logging
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
+  console.error('Stack trace:', error.stack);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Unhandled Rejection at:', promise);
+  console.error('Reason:', reason);
+  if (reason instanceof Error) {
+    console.error('Stack trace:', reason.stack);
+  }
 });
 
 (async () => {
   try {
     console.log('Starting server initialization...');
 
-    // Test database connection before starting server
-    try {
-      console.log('Testing database connection...');
-      const result = await db.execute<Record<string, number>>(sql`SELECT 1 as test`);
-      console.log('Database connection verified:', result);
-    } catch (dbError) {
-      console.error('Database connection test failed:', dbError);
-      throw dbError;
+    // Verify environment variables first
+    const requiredEnvVars = ['DATABASE_URL', 'OPENAI_API_KEY'];
+    const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+    if (missingEnvVars.length > 0) {
+      throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
     }
 
+    console.log('Environment variables validated');
+
+    // Test database connection with timeout
+    try {
+      console.log('Testing database connection...');
+      const dbTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Database connection timeout')), 5000);
+      });
+
+      const dbTest = db.execute<Record<string, number>>(sql`SELECT 1 as test`);
+      await Promise.race([dbTest, dbTimeout]);
+
+      console.log('Database connection verified successfully');
+    } catch (dbError) {
+      console.error('Database connection test failed:', {
+        error: dbError instanceof Error ? dbError.message : dbError,
+        stack: dbError instanceof Error ? dbError.stack : undefined
+      });
+      throw new Error('Failed to connect to database');
+    }
+
+    // Initialize routes and server
+    console.log('Initializing routes...');
     const server = registerRoutes(app);
 
+    // Enhanced error handling middleware with detailed logging
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error('Error in request:', {
         status: err.status || err.statusCode,
         message: err.message,
-        stack: err.stack
+        stack: err.stack,
+        details: err
       });
 
       const status = err.status || err.statusCode || 500;
@@ -79,7 +109,8 @@ process.on('unhandledRejection', (reason, promise) => {
       });
     });
 
-    console.log('Setting up Vite or static serving...');
+    // Setup Vite or static serving
+    console.log('Setting up application server...');
     if (app.get("env") === "development") {
       await setupVite(app, server);
     } else {
@@ -91,19 +122,29 @@ process.on('unhandledRejection', (reason, promise) => {
       log(`Server successfully started and listening on port ${PORT}`);
     });
 
+    // Graceful shutdown handler
     const shutdown = () => {
-      console.log('Shutting down server...');
+      console.log('Initiating graceful shutdown...');
       server.close(() => {
         console.log('Server closed');
         process.exit(0);
       });
+
+      // Force exit if graceful shutdown fails
+      setTimeout(() => {
+        console.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+      }, 10000);
     };
 
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
 
   } catch (error) {
-    console.error('Fatal error during server startup:', error);
+    console.error('Fatal error during server startup:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined
+    });
     process.exit(1);
   }
 })();
