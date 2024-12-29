@@ -5,10 +5,17 @@ let openai: OpenAI | null = null;
 
 // Validate API key and initialize OpenAI client with better error handling
 export async function initializeOpenAI(): Promise<void> {
-  if (!process.env.OPENAI_API_KEY) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
     console.error("OPENAI_API_KEY environment variable is not set");
     throw new Error("OpenAI API key not configured");
   }
+
+  console.log("OpenAI API key verification:", {
+    keyLength: apiKey.length,
+    keyPrefix: apiKey.substring(0, 3),
+    isValid: apiKey.startsWith('sk-')
+  });
 
   try {
     console.log("Creating OpenAI client...");
