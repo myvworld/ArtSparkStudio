@@ -33,12 +33,31 @@ export async function analyzeArtwork(
     console.log("Preparing OpenAI request with image and prompt");
     const prompt = `As an expert art critic and educator, analyze this artwork titled "${title}" ${
       goals ? `with the artist's goals: ${goals}. ` : '. '
-    }Provide a comprehensive analysis in JSON format, including a detailed assessment of:
-    - Style (current style, influences, artistic movement)
-    - Composition (structure, balance, color theory)
-    - Technique (medium, execution, skill level)
-    - Strengths and areas for improvement
-    - Specific technical suggestions and learning resources`;
+    }Provide a comprehensive analysis in JSON format, including:
+    {
+      "style": {
+        "current": "string",
+        "influences": ["string"],
+        "period": "string",
+        "movement": "string"
+      },
+      "composition": {
+        "structure": "string",
+        "balance": "string",
+        "colorTheory": "string",
+        "focusPoints": ["string"]
+      },
+      "technique": {
+        "medium": "string",
+        "execution": "string",
+        "skillLevel": "string",
+        "uniqueApproaches": ["string"]
+      },
+      "strengths": ["string"],
+      "improvements": ["string"],
+      "detailedFeedback": "string",
+      "learningResources": ["string"]
+    }`;
 
     console.log("Sending request to OpenAI API");
     const response = await openai.chat.completions.create({
@@ -70,9 +89,23 @@ export async function analyzeArtwork(
     const rawResponse = response.choices[0].message.content;
     console.log("Raw OpenAI response:", rawResponse);
 
-    const analysis = JSON.parse(rawResponse);
-    console.log("Parsed analysis:", analysis);
+    let analysis;
+    try {
+      analysis = JSON.parse(rawResponse);
+      console.log("Successfully parsed OpenAI response");
+    } catch (parseError) {
+      console.error("Failed to parse OpenAI response:", parseError);
+      console.error("Raw response was:", rawResponse);
+      throw new Error("Failed to parse OpenAI response");
+    }
 
+    // Validate the analysis structure
+    if (!analysis.style || !analysis.composition || !analysis.technique) {
+      console.error("Invalid analysis structure:", analysis);
+      throw new Error("Invalid analysis structure from OpenAI");
+    }
+
+    console.log("Returning formatted analysis");
     return {
       style: {
         current: analysis.style?.current || "Style analysis unavailable",
@@ -107,6 +140,11 @@ export async function analyzeArtwork(
       error: error.message,
       stack: error.stack
     });
+
+    if (error.message.includes("OpenAI API error")) {
+      console.log("OpenAI API error - returning mock analysis");
+      return getMockAnalysis("API Error");
+    }
 
     return getMockAnalysis("Error Processing");
   }

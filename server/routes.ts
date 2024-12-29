@@ -288,6 +288,12 @@ export function registerRoutes(app: Express): Server {
 
       // Convert image to base64
       const imageBase64 = req.file.buffer.toString('base64');
+      console.log('Image converted to base64', {
+        size: req.file.size,
+        mimeType: req.file.mimetype,
+        base64Length: imageBase64.length
+      });
+
       const imageUrl = `data:${req.file.mimetype};base64,${imageBase64}`;
 
       // First create the artwork record
@@ -306,11 +312,20 @@ export function registerRoutes(app: Express): Server {
 
       // Then analyze the artwork
       try {
-        console.log('Starting OpenAI analysis');
+        console.log('Starting OpenAI analysis with parameters:', {
+          title,
+          hasGoals: !!goals,
+          imageSize: imageBase64.length
+        });
+
         const base64Image = imageUrl.split(',')[1];
         const analysis = await analyzeArtwork(base64Image, title, goals);
 
-        console.log('Successfully received OpenAI analysis, storing feedback');
+        console.log('OpenAI analysis completed successfully:', {
+          artworkId: artwork.id,
+          hasAnalysis: !!analysis,
+          analysisKeys: Object.keys(analysis)
+        });
 
         // Store the analysis
         const [feedbackEntry] = await db
@@ -321,16 +336,24 @@ export function registerRoutes(app: Express): Server {
           })
           .returning();
 
+        console.log('Feedback stored successfully:', {
+          feedbackId: feedbackEntry.id,
+          artworkId: artwork.id
+        });
+
         // Add the feedback to the response
         const artworkWithFeedback = {
           ...artwork,
           feedback: [feedbackEntry]
         };
 
-        console.log('Successfully stored feedback, sending response');
+        console.log('Successfully completed artwork upload and analysis');
         res.json(artworkWithFeedback);
       } catch (error) {
-        console.error('Error during artwork analysis:', error);
+        console.error('Error during artwork analysis:', error, {
+          stack: error.stack,
+          artworkId: artwork.id
+        });
         // Even if analysis fails, we still return the artwork
         res.json({
           ...artwork,
@@ -339,7 +362,11 @@ export function registerRoutes(app: Express): Server {
         });
       }
     } catch (error) {
-      console.error('Error in artwork upload:', error);
+      console.error('Error in artwork upload:', error, {
+        stack: error.stack,
+        userId: req.user?.id,
+        hasFile: !!req.file
+      });
       res.status(500).json({ 
         error: "Error uploading artwork",
         details: error instanceof Error ? error.message : 'Unknown error'
