@@ -199,10 +199,16 @@ export function registerRoutes(app: Express): Server {
 
 
               // For json column, pass the object directly without stringifying
+              console.log('Inserting feedback with analysis:', {
+                analysisType: typeof feedbackData.analysis,
+                isObject: feedbackData.analysis !== null && typeof feedbackData.analysis === 'object',
+                hasRequiredFields: feedbackData.analysis?.style && feedbackData.analysis?.composition && feedbackData.analysis?.technique
+              });
+
               const feedbackToInsert = {
                 artworkId: feedbackData.artworkId,
                 suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
-                analysis: feedbackData.analysis // Pass the analysis object directly
+                analysis: feedbackData.analysis 
               };
 
               const feedbackEntries = await db
