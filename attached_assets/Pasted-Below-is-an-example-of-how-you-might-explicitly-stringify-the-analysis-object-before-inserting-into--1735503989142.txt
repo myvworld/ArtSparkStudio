@@ -1,0 +1,69 @@
+Below is an example of how you might explicitly stringify the analysis object before inserting into PostgreSQL. This is particularly relevant if your column is defined as a text (or varchar) column rather than a json/jsonb column. Even if the column is json, some ORMs still require you to pass a JSON string rather than a raw JS object.
+
+server/routes.ts
+ts
+Copy code
+import { db } from '../db';
+import { feedbackTable } from '../db/schema';
+
+router.post('/feedback', async (req, res) => {
+  try {
+    const feedbackData = req.body; // or however you're getting the data
+
+    // 1. Construct the object to insert
+    //    Make sure to stringify analysis if your DB column is text or
+    //    if Drizzle doesn't handle object->JSON automatically.
+    const dataToInsert = {
+      artworkId: feedbackData.artworkId,
+      suggestions: Array.isArray(feedbackData.suggestions)
+        ? feedbackData.suggestions
+        : ['Upload your next artwork to see how your style evolves!'],
+      // Explicitly stringify the analysis field
+      analysis: JSON.stringify(feedbackData.analysis),
+    };
+
+    // 2. Log the final data to confirm what will be inserted
+    console.log('Inserting feedback data:', dataToInsert);
+
+    // 3. Insert into Drizzle
+    const insertedFeedback = await db.insert(feedbackTable)
+      .values(dataToInsert)
+      // Return the columns you care about
+      .returning({
+        id: feedbackTable.id,
+        artworkId: feedbackTable.artworkId,
+        suggestions: feedbackTable.suggestions,
+        analysis: feedbackTable.analysis,
+      })
+      .all(); // or .get() if a single row
+
+    // 4. Respond with the inserted data
+    res.json({
+      success: true,
+      data: insertedFeedback,
+    });
+  } catch (error) {
+    console.error('Error inserting feedback data:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+Why This Fix Works
+Stringifying the Object
+If your Postgres column is defined as text (or varchar), Postgres only accepts a string value. Passing a raw JavaScript object leads to “invalid input syntax for type json” because Postgres tries to parse that object as literal JSON text.
+
+No Schema Changes Needed
+By storing the entire analysis object as a string, you’re not changing how the table is defined. You’re just formatting the data in the way Postgres expects.
+
+Retrieve + Parse Later
+If you need to use the analysis data in your application logic later, remember you’ll get it back as a string from the database. You’ll have to do:
+
+ts
+Copy code
+const parsedAnalysis = JSON.parse(insertedRow.analysis);
+If your column were truly jsonb('analysis') or json('analysis') in Drizzle and Drizzle automatically serialized objects to JSON, you could pass the raw object directly. But in your current setup (based on the error logs), explicitly stringifying the data matches what Postgres expects and prevents the “invalid input syntax for type json” error.
+
+
+
+
+
+
