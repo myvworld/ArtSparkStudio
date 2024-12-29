@@ -1,8 +1,15 @@
 import OpenAI from "openai";
-import type { ArtAnalysis, StyleComparison } from "./types";
+import type { ArtAnalysis } from "./types";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let openai: OpenAI;
+try {
+  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  console.log("OpenAI client initialized successfully");
+} catch (error) {
+  console.error("Failed to initialize OpenAI client:", error);
+  process.exit(1);
+}
 
 export async function analyzeArtwork(
   imageBase64: string,
@@ -12,55 +19,26 @@ export async function analyzeArtwork(
   console.log(`Starting artwork analysis for "${title}"`);
 
   try {
-    // Check for OpenAI configuration
+    // Validate inputs
+    if (!imageBase64) {
+      console.error("No image data provided for analysis");
+      throw new Error("Image data is required");
+    }
+
     if (!process.env.OPENAI_API_KEY) {
       console.log("OpenAI API key is missing - returning mock analysis");
-      return {
-        style: {
-          current: "Analysis Unavailable",
-          influences: ["Service Temporarily Unavailable"]
-        },
-        composition: {
-          structure: "Analysis Pending",
-          balance: "Please try again later",
-          colorTheory: "Service configuration required"
-        },
-        technique: {
-          medium: "Pending Analysis",
-          execution: "Service temporarily unavailable",
-          skillLevel: "Unable to analyze"
-        },
-        strengths: [],
-        improvements: [],
-        detailedFeedback: "The artwork analysis service is currently unavailable. Please try again later."
-      };
+      return getMockAnalysis("Service Temporarily Unavailable");
     }
 
     console.log("Preparing OpenAI request with image and prompt");
     const prompt = `As an expert art critic and educator, analyze this artwork titled "${title}" ${
       goals ? `with the artist's goals: ${goals}. ` : '. '
-    }Provide a detailed analysis in JSON format with the following structure:
-    {
-      "style": {
-        "current": "string",
-        "influences": ["string"],
-        "period": "string",
-        "movement": "string"
-      },
-      "composition": {
-        "structure": "string",
-        "balance": "string",
-        "colorTheory": "string"
-      },
-      "technique": {
-        "medium": "string",
-        "execution": "string",
-        "skillLevel": "string"
-      },
-      "strengths": ["string"],
-      "improvements": ["string"],
-      "detailedFeedback": "string"
-    }`;
+    }Provide a comprehensive analysis in JSON format, including a detailed assessment of:
+    - Style (current style, influences, artistic movement)
+    - Composition (structure, balance, color theory)
+    - Technique (medium, execution, skill level)
+    - Strengths and areas for improvement
+    - Specific technical suggestions and learning resources`;
 
     console.log("Sending request to OpenAI API");
     const response = await openai.chat.completions.create({
@@ -84,33 +62,45 @@ export async function analyzeArtwork(
     });
 
     if (!response.choices[0]?.message?.content) {
+      console.error("Empty response from OpenAI");
       throw new Error("Empty response from OpenAI");
     }
 
     console.log("Successfully received OpenAI response");
-    const analysis = JSON.parse(response.choices[0].message.content);
+    const rawResponse = response.choices[0].message.content;
+    console.log("Raw OpenAI response:", rawResponse);
 
-    // Ensure the response matches our schema structure
+    const analysis = JSON.parse(rawResponse);
+    console.log("Parsed analysis:", analysis);
+
     return {
       style: {
         current: analysis.style?.current || "Style analysis unavailable",
         influences: analysis.style?.influences || [],
-        period: analysis.style?.period,
-        movement: analysis.style?.movement
+        similarArtists: analysis.style?.similarArtists || [],
+        period: analysis.style?.period || "Period unknown",
+        movement: analysis.style?.movement || "Movement unknown"
       },
       composition: {
         structure: analysis.composition?.structure || "Composition analysis unavailable",
         balance: analysis.composition?.balance || "Balance analysis unavailable",
-        colorTheory: analysis.composition?.colorTheory || "Color theory analysis unavailable"
+        colorTheory: analysis.composition?.colorTheory || "Color theory analysis unavailable",
+        perspective: analysis.composition?.perspective || "Perspective analysis unavailable",
+        focusPoints: analysis.composition?.focusPoints || [],
+        dynamicElements: analysis.composition?.dynamicElements || []
       },
       technique: {
         medium: analysis.technique?.medium || "Medium analysis unavailable",
         execution: analysis.technique?.execution || "Execution analysis unavailable",
-        skillLevel: analysis.technique?.skillLevel || "Skill level analysis unavailable"
+        skillLevel: analysis.technique?.skillLevel || "Skill level analysis unavailable",
+        uniqueApproaches: analysis.technique?.uniqueApproaches || [],
+        materialUsage: analysis.technique?.materialUsage || "Material usage analysis unavailable"
       },
       strengths: analysis.strengths || [],
       improvements: analysis.improvements || [],
-      detailedFeedback: analysis.detailedFeedback || "Detailed feedback unavailable"
+      detailedFeedback: analysis.detailedFeedback || "Detailed feedback unavailable",
+      technicalSuggestions: analysis.technicalSuggestions || [],
+      learningResources: analysis.learningResources || []
     };
   } catch (error: any) {
     console.error("Artwork analysis failed:", {
@@ -118,25 +108,38 @@ export async function analyzeArtwork(
       stack: error.stack
     });
 
-    // Return a graceful error response that matches our schema
-    return {
-      style: {
-        current: "Error Processing",
-        influences: ["Service Error"]
-      },
-      composition: {
-        structure: "Error Processing",
-        balance: "Error Processing",
-        colorTheory: "Error Processing"
-      },
-      technique: {
-        medium: "Error Processing",
-        execution: "Error Processing",
-        skillLevel: "Error Processing"
-      },
-      strengths: [],
-      improvements: [],
-      detailedFeedback: "We encountered an error while analyzing your artwork. Please try again later."
-    };
+    return getMockAnalysis("Error Processing");
   }
+}
+
+function getMockAnalysis(status: string): ArtAnalysis {
+  return {
+    style: {
+      current: status,
+      influences: ["Service Error"],
+      similarArtists: [],
+      period: status,
+      movement: status
+    },
+    composition: {
+      structure: status,
+      balance: status,
+      colorTheory: status,
+      perspective: status,
+      focusPoints: [],
+      dynamicElements: []
+    },
+    technique: {
+      medium: status,
+      execution: status,
+      skillLevel: status,
+      uniqueApproaches: [],
+      materialUsage: status
+    },
+    strengths: [],
+    improvements: [],
+    detailedFeedback: "We encountered an error while analyzing your artwork. Please try again later.",
+    technicalSuggestions: [],
+    learningResources: []
+  };
 }

@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription, // Added
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
@@ -256,7 +257,7 @@ const renderFeedback = (feedback: any, styleComparison: any) => {
   );
 };
 
-export default function Dashboard() {
+const Dashboard = () => {
   const { artworks, upload, delete: deleteArtwork, toggleVisibility, updateTitle, isLoading, isUploading, isDeleting, isTogglingVisibility, isUpdatingTitle } = useArtwork();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -355,51 +356,54 @@ export default function Dashboard() {
         </div>
         <div className="ml-8">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Upload className="w-4 h-4" /> Upload New Art
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Upload Artwork</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleUpload} className="space-y-4">
-              <div>
-                <Input
-                  name="title"
-                  placeholder="Artwork Title"
-                  required
-                />
-              </div>
-              <div>
-                <Textarea
-                  name="goals"
-                  placeholder="What are your goals for this piece? (optional)"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Input
-                  type="file"
-                  name="image"
-                  accept="image/*"
-                  required
-                />
-              </div>
-              <Button type="submit" disabled={isUploading} className="w-full">
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  "Upload & Analyze"
-                )}
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Upload className="w-4 h-4" /> Upload New Art
               </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]" aria-describedby="upload-dialog-description">
+              <DialogHeader>
+                <DialogTitle>Upload Artwork</DialogTitle>
+                <DialogDescription id="upload-dialog-description">
+                  Upload your artwork to receive AI-powered analysis and feedback.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleUpload} className="space-y-4">
+                <div>
+                  <Input
+                    name="title"
+                    placeholder="Artwork Title"
+                    required
+                  />
+                </div>
+                <div>
+                  <Textarea
+                    name="goals"
+                    placeholder="What are your goals for this piece? (optional)"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Input
+                    type="file"
+                    name="image"
+                    accept="image/*"
+                    required
+                  />
+                </div>
+                <Button type="submit" disabled={isUploading} className="w-full">
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    "Upload & Analyze"
+                  )}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -419,9 +423,10 @@ export default function Dashboard() {
               <DialogTrigger asChild>
                 <Button>Upload Artwork</Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-[425px]" aria-describedby="upload-dialog-description">
                 <DialogHeader>
                   <DialogTitle>Upload Artwork</DialogTitle>
+                  <DialogDescription id="upload-dialog-description">Upload your artwork to receive AI-powered analysis and feedback.</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleUpload} className="space-y-4">
                   <div>
@@ -482,9 +487,12 @@ export default function Dashboard() {
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="sm:max-w-[425px]" aria-describedby="edit-dialog-description">
                       <DialogHeader>
                         <DialogTitle>Edit Title</DialogTitle>
+                        <DialogDescription id="edit-dialog-description">
+                          Update the title of your artwork.
+                        </DialogDescription>
                       </DialogHeader>
                       <form onSubmit={async (e) => {
                         e.preventDefault();
@@ -588,4 +596,6 @@ export default function Dashboard() {
       )}
     </div>
   );
-}
+};
+
+export default Dashboard;
