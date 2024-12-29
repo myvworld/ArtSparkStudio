@@ -139,7 +139,7 @@ export function registerRoutes(app: Express): Server {
             // Ensure the analysis object matches the schema structure
             const feedbackData: NewFeedback = {
               artworkId: artwork.id,
-              analysis: {
+              analysis: JSON.parse(JSON.stringify({
                 style: {
                   current: analysis.style?.current || "Unknown style",
                   influences: Array.isArray(analysis.style?.influences) ? analysis.style.influences : [],
@@ -167,7 +167,7 @@ export function registerRoutes(app: Express): Server {
                 detailedFeedback: analysis.detailedFeedback || "No detailed feedback available",
                 technicalSuggestions: Array.isArray(analysis.technicalSuggestions) ? analysis.technicalSuggestions : [],
                 learningResources: Array.isArray(analysis.learningResources) ? analysis.learningResources : []
-              },
+              })),
               suggestions: Array.isArray(analysis?.suggestions) && analysis.suggestions.length > 0
                 ? analysis.suggestions
                 : ['Upload your next artwork to see how your style evolves! The AI will analyze your progress and provide insights on your artistic development.']
