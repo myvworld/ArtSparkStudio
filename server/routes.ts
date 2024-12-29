@@ -131,7 +131,7 @@ app.post("/api/artwork", upload.single('image'), async (req, res) => {
           .insert(feedback)
           .values({
             artworkId: artwork.id,
-            analysis: JSON.parse(JSON.stringify(analysis)), // Ensure proper JSON formatting
+            analysis: analysis, // Pass the analysis object directly since it's already properly structured
             suggestions: Array.isArray(analysis?.suggestions) && analysis.suggestions.length > 0
               ? analysis.suggestions
               : ['Upload your next artwork to see how your style evolves! The AI will analyze your progress and provide insights on your artistic development.']
