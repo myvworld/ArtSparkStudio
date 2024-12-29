@@ -4,34 +4,38 @@ import multer from "multer";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { eq, desc, and, sql } from "drizzle-orm";
-import express from 'express';
-import { analyzeArtwork } from "./openai";  // Import from openai.ts
-import { 
-  artworks, 
-  users, 
+import express from "express";
+import { analyzeArtwork } from "./openai"; // Import from openai.ts
+import {
+  artworks,
+  users,
   comments,
   ratings,
   feedback,
   styleComparisons,
   subscriptionPlans,
   adminSettings,
-  type NewFeedback
+  type NewFeedback,
 } from "@db/schema";
-import { createStripeCheckoutSession, handleStripeWebhook, SUBSCRIPTION_PRICES } from "./stripe";
+import {
+  createStripeCheckoutSession,
+  handleStripeWebhook,
+  SUBSCRIPTION_PRICES,
+} from "./stripe";
 
 const storage = multer.memoryStorage();
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  }
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
 });
 
 function requireAdmin(req: any, res: any, next: any) {
-  console.log('Admin check:', {
+  console.log("Admin check:", {
     isAuthenticated: req.isAuthenticated(),
     user: req.user,
-    isAdmin: req.user?.isAdmin
+    isAdmin: req.user?.isAdmin,
   });
 
   if (!req.isAuthenticated()) {
@@ -55,44 +59,55 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Add enhanced error handling and logging for artwork analysis
-  app.post("/api/artwork", upload.single('image'), async (req, res) => {
+  app.post("/api/artwork", upload.single("image"), async (req, res) => {
     try {
-      console.log('Starting artwork upload process');
+      console.log("Starting artwork upload process");
 
       if (!req.isAuthenticated()) {
-        console.log('Authentication check failed');
+        console.log("Authentication check failed");
         return res.status(401).json({ error: "Not authenticated" });
       }
 
       if (!req.file) {
-        console.log('No image file provided in request');
+        console.log("No image file provided in request");
         return res.status(400).json({ error: "No image file provided" });
       }
 
       const { title, goals } = req.body;
       if (!title) {
-        console.log('Title missing in request');
+        console.log("Title missing in request");
         return res.status(400).json({ error: "Title is required" });
       }
 
-      console.log(`Processing artwork upload: "${title}" by user ${req.user.id}`);
+      console.log(
+        `Processing artwork upload: "${title}" by user ${req.user.id}`,
+      );
 
       // Validate image type
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
       if (!allowedTypes.includes(req.file.mimetype)) {
-        return res.status(400).json({ error: "Invalid image format. Please upload JPEG, PNG or WebP" });
+        return res
+          .status(400)
+          .json({
+            error: "Invalid image format. Please upload JPEG, PNG or WebP",
+          });
       }
 
       // Convert and validate image size
-      const imageBase64 = req.file.buffer.toString('base64');
-      if (imageBase64.length > 5000000) { // ~5MB limit
-        return res.status(400).json({ error: "Image size too large. Please upload a smaller image" });
+      const imageBase64 = req.file.buffer.toString("base64");
+      if (imageBase64.length > 5000000) {
+        // ~5MB limit
+        return res
+          .status(400)
+          .json({
+            error: "Image size too large. Please upload a smaller image",
+          });
       }
 
-      console.log('Processing image:', {
+      console.log("Processing image:", {
         size: req.file.size,
         mimeType: req.file.mimetype,
-        base64Length: imageBase64.length
+        base64Length: imageBase64.length,
       });
 
       const imageUrl = `data:${req.file.mimetype};base64,${imageBase64}`;
@@ -113,215 +128,328 @@ export function registerRoutes(app: Express): Server {
 
       // Then analyze the artwork
       try {
-        console.log('Starting OpenAI analysis with parameters:', {
+        console.log("Starting OpenAI analysis with parameters:", {
           title,
           hasGoals: !!goals,
-          imageSize: imageBase64.length
+          imageSize: imageBase64.length,
         });
 
         const analysis = await analyzeArtwork(imageBase64, title, goals);
 
-        console.log('OpenAI analysis completed successfully:', {
+        console.log("OpenAI analysis completed successfully:", {
           artworkId: artwork.id,
-          hasAnalysis: !!analysis
+          hasAnalysis: !!analysis,
         });
 
         // Store the analysis
         if (analysis) {
-          console.log('Processing analysis object:', {
+          console.log("Processing analysis object:", {
             hasStyle: !!analysis.style,
             hasComposition: !!analysis.composition,
             hasTechnique: !!analysis.technique,
-            rawAnalysis: JSON.stringify(analysis, null, 2)
+            rawAnalysis: JSON.stringify(analysis, null, 2),
           });
 
           try {
-                // Validate analysis object before processing
-              function isValidAnalysis(analysis: any): boolean {
-                return (
-                  analysis &&
-                  typeof analysis === 'object' &&
-                  analysis.style && typeof analysis.style === 'object' &&
-                  analysis.composition && typeof analysis.composition === 'object' &&
-                  analysis.technique && typeof analysis.technique === 'object' &&
-                  Array.isArray(analysis.strengths) &&
-                  Array.isArray(analysis.improvements) &&
-                  typeof analysis.detailedFeedback === 'string'
-                );
-              }
+            // Validate analysis object before processing
+            function isValidAnalysis(analysis: any): boolean {
+              return (
+                analysis &&
+                typeof analysis === "object" &&
+                analysis.style &&
+                typeof analysis.style === "object" &&
+                analysis.composition &&
+                typeof analysis.composition === "object" &&
+                analysis.technique &&
+                typeof analysis.technique === "object" &&
+                Array.isArray(analysis.strengths) &&
+                Array.isArray(analysis.improvements) &&
+                typeof analysis.detailedFeedback === "string"
+              );
+            }
 
-              if (!isValidAnalysis(analysis)) {
-                console.error('Invalid analysis structure:', analysis);
-                throw new Error('Invalid analysis data structure from OpenAI');
-              }
+            if (!isValidAnalysis(analysis)) {
+              console.error("Invalid analysis structure:", analysis);
+              throw new Error("Invalid analysis data structure from OpenAI");
+            }
 
-              // Create properly structured feedback data
-              const feedbackData: NewFeedback = {
-                  artworkId: artwork.id,
-                  analysis: {
-                    style: {
-                      current: typeof analysis.style === 'object' ? analysis.style.current : String(analysis.style || "Unknown style"),
-                      influences: Array.isArray(analysis.style?.influences) ? analysis.style.influences : [],
-                      similarArtists: Array.isArray(analysis.style?.similarArtists) ? analysis.style.similarArtists : [],
-                      period: analysis.style?.period || null,
-                      movement: analysis.style?.movement || null
-                    },
-                    composition: {
-                      structure: typeof analysis.composition === 'object' ? analysis.composition.structure : String(analysis.composition || "Not analyzed"),
-                      balance: analysis.composition?.balance || "Not analyzed",
-                      colorTheory: analysis.composition?.colorTheory || "Not analyzed",
-                      perspective: analysis.composition?.perspective || null,
-                      focusPoints: Array.isArray(analysis.composition?.focusPoints) ? analysis.composition.focusPoints : [],
-                      dynamicElements: Array.isArray(analysis.composition?.dynamicElements) ? analysis.composition.dynamicElements : []
-                    },
-                    technique: {
-                      medium: typeof analysis.technique === 'object' ? analysis.technique.medium : String(analysis.technique || "Not specified"),
-                      execution: analysis.technique?.execution || "Not analyzed",
-                      skillLevel: analysis.technique?.skillLevel || "Not analyzed",
-                      uniqueApproaches: Array.isArray(analysis.technique?.uniqueApproaches) ? analysis.technique.uniqueApproaches : [],
-                      materialUsage: analysis.technique?.materialUsage || null
-                    },
-                    strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
-                    improvements: Array.isArray(analysis.improvements) ? analysis.improvements : [],
-                    detailedFeedback: String(analysis.detailedFeedback || "No detailed feedback available"),
-                    technicalSuggestions: Array.isArray(analysis.technicalSuggestions) ? analysis.technicalSuggestions : [],
-                    learningResources: []
-                  },
-                  suggestions: Array.isArray(analysis?.suggestions) ? analysis.suggestions
-                    : ['Upload your next artwork to see how your style evolves! The AI will analyze your progress and provide insights on your artistic development.']
-            };
-
-            console.log('Structured feedback data before insertion:', {
-              artworkId: feedbackData.artworkId,
-              analysisStructure: Object.keys(feedbackData.analysis),
-              suggestionsCount: feedbackData.suggestions.length
-            });
-
-
-              // For json column, pass the object directly without stringifying
-              console.log('Inserting feedback with analysis:', {
-                analysisType: typeof feedbackData.analysis,
-                isObject: feedbackData.analysis !== null && typeof feedbackData.analysis === 'object',
-                hasRequiredFields: feedbackData.analysis?.style && feedbackData.analysis?.composition && feedbackData.analysis?.technique
-              });
-
-              // Validate and sanitize the feedback data
-              const sanitizedAnalysis = {
+            // Create properly structured feedback data
+            const feedbackData: NewFeedback = {
+              artworkId: artwork.id,
+              analysis: {
                 style: {
-                  current: String(feedbackData.analysis?.style?.current || "Style analysis unavailable"),
-                  influences: Array.isArray(feedbackData.analysis?.style?.influences) ? feedbackData.analysis.style.influences : [],
-                  similarArtists: Array.isArray(feedbackData.analysis?.style?.similarArtists) ? feedbackData.analysis.style.similarArtists : [],
-                  period: feedbackData.analysis?.style?.period || null,
-                  movement: feedbackData.analysis?.style?.movement || null
+                  current:
+                    typeof analysis.style === "object"
+                      ? analysis.style.current
+                      : String(analysis.style || "Unknown style"),
+                  influences: Array.isArray(analysis.style?.influences)
+                    ? analysis.style.influences
+                    : [],
+                  similarArtists: Array.isArray(analysis.style?.similarArtists)
+                    ? analysis.style.similarArtists
+                    : [],
+                  period: analysis.style?.period || null,
+                  movement: analysis.style?.movement || null,
                 },
                 composition: {
-                  structure: String(feedbackData.analysis?.composition?.structure || "Structure analysis unavailable"),
-                  balance: String(feedbackData.analysis?.composition?.balance || "Balance analysis unavailable"),
-                  colorTheory: String(feedbackData.analysis?.composition?.colorTheory || "Color theory analysis unavailable"),
-                  perspective: feedbackData.analysis?.composition?.perspective || null,
-                  focusPoints: Array.isArray(feedbackData.analysis?.composition?.focusPoints) ? feedbackData.analysis.composition.focusPoints : [],
-                  dynamicElements: Array.isArray(feedbackData.analysis?.composition?.dynamicElements) ? feedbackData.analysis.composition.dynamicElements : []
+                  structure:
+                    typeof analysis.composition === "object"
+                      ? analysis.composition.structure
+                      : String(analysis.composition || "Not analyzed"),
+                  balance: analysis.composition?.balance || "Not analyzed",
+                  colorTheory:
+                    analysis.composition?.colorTheory || "Not analyzed",
+                  perspective: analysis.composition?.perspective || null,
+                  focusPoints: Array.isArray(analysis.composition?.focusPoints)
+                    ? analysis.composition.focusPoints
+                    : [],
+                  dynamicElements: Array.isArray(
+                    analysis.composition?.dynamicElements,
+                  )
+                    ? analysis.composition.dynamicElements
+                    : [],
                 },
                 technique: {
-                  medium: String(feedbackData.analysis?.technique?.medium || "Medium analysis unavailable"),
-                  execution: String(feedbackData.analysis?.technique?.execution || "Execution analysis unavailable"),
-                  skillLevel: String(feedbackData.analysis?.technique?.skillLevel || "Skill level analysis unavailable"),
-                  uniqueApproaches: Array.isArray(feedbackData.analysis?.technique?.uniqueApproaches) ? feedbackData.analysis.technique.uniqueApproaches : [],
-                  materialUsage: feedbackData.analysis?.technique?.materialUsage || null
+                  medium:
+                    typeof analysis.technique === "object"
+                      ? analysis.technique.medium
+                      : String(analysis.technique || "Not specified"),
+                  execution: analysis.technique?.execution || "Not analyzed",
+                  skillLevel: analysis.technique?.skillLevel || "Not analyzed",
+                  uniqueApproaches: Array.isArray(
+                    analysis.technique?.uniqueApproaches,
+                  )
+                    ? analysis.technique.uniqueApproaches
+                    : [],
+                  materialUsage: analysis.technique?.materialUsage || null,
                 },
-                strengths: Array.isArray(feedbackData.analysis?.strengths) ? feedbackData.analysis.strengths : [],
-                improvements: Array.isArray(feedbackData.analysis?.improvements) ? feedbackData.analysis.improvements : [],
-                detailedFeedback: String(feedbackData.analysis?.detailedFeedback || "Detailed feedback unavailable"),
-                technicalSuggestions: Array.isArray(feedbackData.analysis?.technicalSuggestions) ? feedbackData.analysis.technicalSuggestions : [],
-                learningResources: Array.isArray(feedbackData.analysis?.learningResources) ? feedbackData.analysis.learningResources : []
-              };
+                strengths: Array.isArray(analysis.strengths)
+                  ? analysis.strengths
+                  : [],
+                improvements: Array.isArray(analysis.improvements)
+                  ? analysis.improvements
+                  : [],
+                detailedFeedback: String(
+                  analysis.detailedFeedback || "No detailed feedback available",
+                ),
+                technicalSuggestions: Array.isArray(
+                  analysis.technicalSuggestions,
+                )
+                  ? analysis.technicalSuggestions
+                  : [],
+                learningResources: [],
+              },
+              suggestions: Array.isArray(analysis?.suggestions)
+                ? analysis.suggestions
+                : [
+                    "Upload your next artwork to see how your style evolves! The AI will analyze your progress and provide insights on your artistic development.",
+                  ],
+            };
 
-              // Log the sanitized data for debugging
-              console.log('Sanitized analysis data:', JSON.stringify(sanitizedAnalysis, null, 2));
+            console.log("Structured feedback data before insertion:", {
+              artworkId: feedbackData.artworkId,
+              analysisStructure: Object.keys(feedbackData.analysis),
+              suggestionsCount: feedbackData.suggestions.length,
+            });
 
-              // Parse and stringify to ensure valid JSON
-              const analysisJson = JSON.parse(JSON.stringify(sanitizedAnalysis));
-              
-              const feedbackToInsert = {
-                artworkId: artwork.id,
-                suggestions: ['Upload your next artwork to see how your style evolves!'],
-                analysis: sanitizedAnalysis
-              };
+            // For json column, pass the object directly without stringifying
+            console.log("Inserting feedback with analysis:", {
+              analysisType: typeof feedbackData.analysis,
+              isObject:
+                feedbackData.analysis !== null &&
+                typeof feedbackData.analysis === "object",
+              hasRequiredFields:
+                feedbackData.analysis?.style &&
+                feedbackData.analysis?.composition &&
+                feedbackData.analysis?.technique,
+            });
 
-              console.log('Inserting feedback:', JSON.stringify(feedbackToInsert, null, 2));
+            // Validate and sanitize the feedback data
+            const sanitizedAnalysis = {
+              style: {
+                current: String(
+                  feedbackData.analysis?.style?.current ||
+                    "Style analysis unavailable",
+                ),
+                influences: Array.isArray(
+                  feedbackData.analysis?.style?.influences,
+                )
+                  ? feedbackData.analysis.style.influences
+                  : [],
+                similarArtists: Array.isArray(
+                  feedbackData.analysis?.style?.similarArtists,
+                )
+                  ? feedbackData.analysis.style.similarArtists
+                  : [],
+                period: feedbackData.analysis?.style?.period || null,
+                movement: feedbackData.analysis?.style?.movement || null,
+              },
+              composition: {
+                structure: String(
+                  feedbackData.analysis?.composition?.structure ||
+                    "Structure analysis unavailable",
+                ),
+                balance: String(
+                  feedbackData.analysis?.composition?.balance ||
+                    "Balance analysis unavailable",
+                ),
+                colorTheory: String(
+                  feedbackData.analysis?.composition?.colorTheory ||
+                    "Color theory analysis unavailable",
+                ),
+                perspective:
+                  feedbackData.analysis?.composition?.perspective || null,
+                focusPoints: Array.isArray(
+                  feedbackData.analysis?.composition?.focusPoints,
+                )
+                  ? feedbackData.analysis.composition.focusPoints
+                  : [],
+                dynamicElements: Array.isArray(
+                  feedbackData.analysis?.composition?.dynamicElements,
+                )
+                  ? feedbackData.analysis.composition.dynamicElements
+                  : [],
+              },
+              technique: {
+                medium: String(
+                  feedbackData.analysis?.technique?.medium ||
+                    "Medium analysis unavailable",
+                ),
+                execution: String(
+                  feedbackData.analysis?.technique?.execution ||
+                    "Execution analysis unavailable",
+                ),
+                skillLevel: String(
+                  feedbackData.analysis?.technique?.skillLevel ||
+                    "Skill level analysis unavailable",
+                ),
+                uniqueApproaches: Array.isArray(
+                  feedbackData.analysis?.technique?.uniqueApproaches,
+                )
+                  ? feedbackData.analysis.technique.uniqueApproaches
+                  : [],
+                materialUsage:
+                  feedbackData.analysis?.technique?.materialUsage || null,
+              },
+              strengths: Array.isArray(feedbackData.analysis?.strengths)
+                ? feedbackData.analysis.strengths
+                : [],
+              improvements: Array.isArray(feedbackData.analysis?.improvements)
+                ? feedbackData.analysis.improvements
+                : [],
+              detailedFeedback: String(
+                feedbackData.analysis?.detailedFeedback ||
+                  "Detailed feedback unavailable",
+              ),
+              technicalSuggestions: Array.isArray(
+                feedbackData.analysis?.technicalSuggestions,
+              )
+                ? feedbackData.analysis.technicalSuggestions
+                : [],
+              learningResources: Array.isArray(
+                feedbackData.analysis?.learningResources,
+              )
+                ? feedbackData.analysis.learningResources
+                : [],
+            };
 
-              const [feedbackEntry] = await db
-                .insert(feedback)
-                .values(feedbackToInsert)
-                .returning();
+            // Log the sanitized data for debugging
+            console.log(
+              "Sanitized analysis data:",
+              JSON.stringify(sanitizedAnalysis, null, 2),
+            );
 
-            console.log('Feedback stored successfully:', {
+            // Parse and stringify to ensure valid JSON
+            const analysisJson = JSON.parse(JSON.stringify(sanitizedAnalysis));
+
+            const feedbackToInsert = {
+              artworkId: artwork.id,
+              suggestions: [
+                "Upload your next artwork to see how your style evolves!",
+              ],
+              analysis: sanitizedAnalysis,
+            };
+
+            console.log(
+              "Inserting feedback:",
+              JSON.stringify(feedbackToInsert, null, 2),
+            );
+
+            const [feedbackEntry] = await db
+              .insert(feedback)
+              .values(feedbackToInsert)
+              .returning();
+
+            console.log("Feedback stored successfully:", {
               feedbackId: feedbackEntry.id,
               artworkId: artwork.id,
-              hasAnalysis: !!feedbackEntry.analysis
+              hasAnalysis: !!feedbackEntry.analysis,
             });
 
             // Add the feedback to the response
             const artworkWithFeedback = {
               ...artwork,
-              feedback: [feedbackEntry]
+              feedback: [feedbackEntry],
             };
 
             try {
-              console.log('Successfully completed artwork upload and analysis');
+              console.log("Successfully completed artwork upload and analysis");
               res.json(artworkWithFeedback);
             } catch (error) {
-              console.error('JSON insert error:', {
+              console.error("JSON insert error:", {
                 error: error instanceof Error ? error.message : String(error),
                 feedbackDataShape: {
                   hasStyle: !!feedbackData.analysis?.style,
                   hasComposition: !!feedbackData.analysis?.composition,
-                  hasTechnique: !!feedbackData.analysis?.technique
-                }
+                  hasTechnique: !!feedbackData.analysis?.technique,
+                },
               });
               throw error;
             }
           } catch (error) {
-            console.error('Error processing analysis object:', {
+            console.error("Error processing analysis object:", {
               error: error instanceof Error ? error.message : String(error),
               stack: error instanceof Error ? error.stack : undefined,
-              analysisKeys: Object.keys(analysis || {})
+              analysisKeys: Object.keys(analysis || {}),
             });
             // Even if analysis processing fails, we still return the artwork
             res.json({
               ...artwork,
               feedback: [],
-              analysisError: error instanceof Error ? error.message : 'Error processing analysis'
+              analysisError:
+                error instanceof Error
+                  ? error.message
+                  : "Error processing analysis",
             });
           }
         } else {
           throw new Error("Analysis failed - no result returned");
         }
       } catch (error) {
-        const err = error instanceof Error ? error : new Error('Unknown error');
-        console.error('Error during artwork analysis:', {
+        const err = error instanceof Error ? error : new Error("Unknown error");
+        console.error("Error during artwork analysis:", {
           message: err.message,
           stack: err.stack,
-          artworkId: artwork.id
+          artworkId: artwork.id,
         });
         // Even if analysis fails, we still return the artwork
         res.json({
           ...artwork,
           feedback: [],
-          analysisError: err.message
+          analysisError: err.message,
         });
       }
     } catch (error) {
-      const err = error instanceof Error ? error : new Error('Unknown error');
-      console.error('Error in artwork upload:', {
+      const err = error instanceof Error ? error : new Error("Unknown error");
+      console.error("Error in artwork upload:", {
         message: err.message,
         stack: err.stack,
         userId: req.user?.id,
-        hasFile: !!req.file
+        hasFile: !!req.file,
       });
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Error uploading artwork",
-        details: err.message
+        details: err.message,
       });
     }
   });
@@ -329,7 +457,7 @@ export function registerRoutes(app: Express): Server {
   // Add user's rating to gallery response
   app.get("/api/gallery", async (req, res) => {
     try {
-      console.log('Fetching gallery data for user:', req.user?.id);
+      console.log("Fetching gallery data for user:", req.user?.id);
       const publicArtworks = await db
         .select({
           id: artworks.id,
@@ -352,13 +480,13 @@ export function registerRoutes(app: Express): Server {
         .groupBy(artworks.id, users.id, users.username)
         .orderBy(desc(artworks.createdAt));
 
-      console.log('Gallery data:', JSON.stringify(publicArtworks[0], null, 2));
+      console.log("Gallery data:", JSON.stringify(publicArtworks[0], null, 2));
       res.json(publicArtworks);
     } catch (error) {
-      console.error('Error fetching gallery:', {
+      console.error("Error fetching gallery:", {
         error: error instanceof Error ? error.message : String(error),
         code: (error as any)?.code,
-        query: 'gallery fetch'
+        query: "gallery fetch",
       });
       res.status(500).send("Error fetching gallery");
     }
@@ -387,33 +515,34 @@ export function registerRoutes(app: Express): Server {
 
       res.json(artworkComments);
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      console.error("Error fetching comments:", error);
       res.status(500).send("Error fetching comments");
     }
   });
 
   // Add a comment to an artwork
-  app.delete("/api/artwork/:artworkId/comments/:commentId", async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || !req.user.isAdmin) {
-        return res.status(403).send("Not authorized");
+  app.delete(
+    "/api/artwork/:artworkId/comments/:commentId",
+    async (req, res) => {
+      try {
+        if (!req.isAuthenticated() || !req.user.isAdmin) {
+          return res.status(403).send("Not authorized");
+        }
+
+        const commentId = parseInt(req.params.commentId);
+        if (isNaN(commentId)) {
+          return res.status(400).send("Invalid comment ID");
+        }
+
+        await db.delete(comments).where(eq(comments.id, commentId));
+
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Error deleting comment:", error);
+        res.status(500).send("Error deleting comment");
       }
-
-      const commentId = parseInt(req.params.commentId);
-      if (isNaN(commentId)) {
-        return res.status(400).send("Invalid comment ID");
-      }
-
-      await db
-        .delete(comments)
-        .where(eq(comments.id, commentId));
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error deleting comment:', error);
-      res.status(500).send("Error deleting comment");
-    }
-  });
+    },
+  );
 
   app.post("/api/artwork/:id/comments", async (req, res) => {
     try {
@@ -451,7 +580,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json(comment);
     } catch (error) {
-      console.error('Error adding comment:', error);
+      console.error("Error adding comment:", error);
       res.status(500).send("Error adding comment");
     }
   });
@@ -469,7 +598,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       const { score } = req.body;
-      if (typeof score !== 'number' || score < 1 || score > 5) {
+      if (typeof score !== "number" || score < 1 || score > 5) {
         return res.status(400).send("Score must be between 1 and 5");
       }
 
@@ -479,8 +608,8 @@ export function registerRoutes(app: Express): Server {
         .where(
           and(
             eq(ratings.artworkId, artworkId),
-            eq(ratings.userId, req.user.id)
-          )
+            eq(ratings.userId, req.user.id),
+          ),
         );
 
       if (existingRating) {
@@ -503,7 +632,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json(rating);
     } catch (error) {
-      console.error('Error rating artwork:', error);
+      console.error("Error rating artwork:", error);
       res.status(500).send("Error rating artwork");
     }
   });
@@ -527,10 +656,7 @@ export function registerRoutes(app: Express): Server {
         .select()
         .from(artworks)
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         );
 
       if (!currentArtwork) {
@@ -542,16 +668,13 @@ export function registerRoutes(app: Express): Server {
         .update(artworks)
         .set({ isPublic: !currentArtwork.isPublic })
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         )
         .returning();
 
       res.json(artwork);
     } catch (error) {
-      console.error('Error updating artwork visibility:', error);
+      console.error("Error updating artwork visibility:", error);
       res.status(500).json({ error: "Error updating artwork visibility" });
     }
   });
@@ -569,23 +692,18 @@ export function registerRoutes(app: Express): Server {
       }
 
       // First delete all comments associated with the artwork
-      await db
-        .delete(comments)
-        .where(eq(comments.artworkId, artworkId));
+      await db.delete(comments).where(eq(comments.artworkId, artworkId));
 
       // Then delete the artwork itself
       await db
         .delete(artworks)
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         );
 
       res.json({ success: true });
     } catch (error) {
-      console.error('Error deleting artwork:', error);
+      console.error("Error deleting artwork:", error);
       res.status(500).json({ error: "Error deleting artwork" });
     }
   });
@@ -622,7 +740,7 @@ export function registerRoutes(app: Express): Server {
         .values({ key, value })
         .onConflictDoUpdate({
           target: adminSettings.key,
-          set: { value, updatedAt: new Date() }
+          set: { value, updatedAt: new Date() },
         })
         .returning();
       res.json(setting);
@@ -635,7 +753,7 @@ export function registerRoutes(app: Express): Server {
   // Add logging to the /api/artwork endpoint
   app.get("/api/artwork", async (req, res) => {
     try {
-      console.log('Fetching artworks for user:', req.user?.id);
+      console.log("Fetching artworks for user:", req.user?.id);
       const userArtworks = await db
         .select({
           id: artworks.id,
@@ -673,7 +791,7 @@ export function registerRoutes(app: Express): Server {
                 FROM ${styleComparisons} sc2
                 WHERE sc2.previous_artwork_id = ${artworks.id}
               )
-            )`
+            )`,
         })
         .from(artworks)
         .leftJoin(feedback, eq(feedback.artworkId, artworks.id))
@@ -681,10 +799,10 @@ export function registerRoutes(app: Express): Server {
         .groupBy(artworks.id)
         .orderBy(desc(artworks.createdAt));
 
-      console.log('Found artworks:', userArtworks.length);
+      console.log("Found artworks:", userArtworks.length);
       res.json(userArtworks);
     } catch (error) {
-      console.error('Error fetching artworks:', error);
+      console.error("Error fetching artworks:", error);
       res.status(500).send("Error fetching artworks");
     }
   });
@@ -692,31 +810,31 @@ export function registerRoutes(app: Express): Server {
   // Subscription routes with enhanced logging
   app.post("/api/subscription/create-checkout-session", async (req, res) => {
     try {
-      console.log('Received checkout session request:', {
+      console.log("Received checkout session request:", {
         userId: req.user?.id,
-        body: req.body
+        body: req.body,
       });
 
       if (!req.isAuthenticated()) {
-        console.log('User not authenticated');
+        console.log("User not authenticated");
         return res.status(401).send("Not authenticated");
       }
 
       const { priceId } = req.body;
       if (!priceId) {
-        console.log('Missing priceId in request');
+        console.log("Missing priceId in request");
         return res.status(400).send("Price ID is required");
       }
 
-      console.log('Creating checkout session with:', {
+      console.log("Creating checkout session with:", {
         userId: req.user.id,
-        priceId: priceId
+        priceId: priceId,
       });
 
       const session = await createStripeCheckoutSession(req.user.id, priceId);
-      console.log('Checkout session created:', {
+      console.log("Checkout session created:", {
         sessionId: session.id,
-        url: session.url
+        url: session.url,
       });
 
       res.json({ url: session.url });
@@ -724,39 +842,43 @@ export function registerRoutes(app: Express): Server {
       console.error("Error creating checkout session:", {
         error: error instanceof Error ? error.message : error,
         userId: req.user?.id,
-        body: req.body
+        body: req.body,
       });
       res.status(500).send("Error creating checkout session");
     }
   });
 
   // Stripe webhook endpoint
-  app.post("/api/stripe/webhook", express.raw({ type: 'application/json' }), async (req, res) => {
-    try {
-      console.log('Received Stripe webhook');
-      const signature = req.headers["stripe-signature"];
-      if (!signature) {
-        console.log('Missing Stripe signature');
-        return res.status(400).send("Stripe signature is required");
-      }
+  app.post(
+    "/api/stripe/webhook",
+    express.raw({ type: "application/json" }),
+    async (req, res) => {
+      try {
+        console.log("Received Stripe webhook");
+        const signature = req.headers["stripe-signature"];
+        if (!signature) {
+          console.log("Missing Stripe signature");
+          return res.status(400).send("Stripe signature is required");
+        }
 
-      const result = await handleStripeWebhook(signature, req.body);
-      console.log('Webhook processed successfully');
-      res.json(result);
-    } catch (err) {
-      const error = err as Error;
-      console.error("Error handling webhook:", {
-        error: error.message,
-        type: req.headers["stripe-webhook-type"]
-      });
-      res.status(400).send(`Webhook Error: ${error.message}`);
-    }
-  });
+        const result = await handleStripeWebhook(signature, req.body);
+        console.log("Webhook processed successfully");
+        res.json(result);
+      } catch (err) {
+        const error = err as Error;
+        console.error("Error handling webhook:", {
+          error: error.message,
+          type: req.headers["stripe-webhook-type"],
+        });
+        res.status(400).send(`Webhook Error: ${error.message}`);
+      }
+    },
+  );
 
   // Admin routes
   app.get("/api/admin/subscription-plans", requireAdmin, async (req, res) => {
     try {
-      console.log('Fetching subscription plans for admin');
+      console.log("Fetching subscription plans for admin");
       const plans = await db
         .select()
         .from(subscriptionPlans)
@@ -769,26 +891,17 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.put("/api/admin/subscription-plans/:id", requireAdmin, async (req, res) => {
-    try {
-      const planId = parseInt(req.params.id);
-      if (isNaN(planId)) {
-        return res.status(400).send("Invalid plan ID");
-      }
+  app.put(
+    "/api/admin/subscription-plans/:id",
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const planId = parseInt(req.params.id);
+        if (isNaN(planId)) {
+          return res.status(400).send("Invalid plan ID");
+        }
 
-      const {
-        name,
-        description,
-        monthlyPrice,
-        yearlyPrice,
-        monthlyUploadLimit,
-        features,
-        isActive,
-      } = req.body;
-
-      const [updatedPlan] = await db
-        .update(subscriptionPlans)
-        .set({
+        const {
           name,
           description,
           monthlyPrice,
@@ -796,21 +909,34 @@ export function registerRoutes(app: Express): Server {
           monthlyUploadLimit,
           features,
           isActive,
-          updatedAt: new Date(),
-        })
-        .where(eq(subscriptionPlans.id, planId))
-        .returning();
+        } = req.body;
 
-      res.json(updatedPlan);
-    } catch (error) {
-      console.error("Error updating subscription plan:", error);
-      res.status(500).send("Error updating subscription plan");
-    }
-  });
+        const [updatedPlan] = await db
+          .update(subscriptionPlans)
+          .set({
+            name,
+            description,
+            monthlyPrice,
+            yearlyPrice,
+            monthlyUploadLimit,
+            features,
+            isActive,
+            updatedAt: new Date(),
+          })
+          .where(eq(subscriptionPlans.id, planId))
+          .returning();
+
+        res.json(updatedPlan);
+      } catch (error) {
+        console.error("Error updating subscription plan:", error);
+        res.status(500).send("Error updating subscription plan");
+      }
+    },
+  );
 
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
-      console.log('Fetching users for admin');
+      console.log("Fetching users for admin");
       const allUsers = await db
         .select({
           id: users.id,
@@ -839,7 +965,7 @@ export function registerRoutes(app: Express): Server {
         username,
         email,
         isAdmin,
-        subscriptionTier
+        subscriptionTier,
       });
     }
     res.status(401).send("Not logged in");
@@ -851,7 +977,7 @@ export function registerRoutes(app: Express): Server {
     }
 
     const { username, email } = req.body;
-    
+
     try {
       const [updatedUser] = await db
         .update(users)
@@ -865,7 +991,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.patch("/api/artwork/:id/title", async (req, res) => {    try {
+  app.patch("/api/artwork/:id/title", async (req, res) => {
+    try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -881,31 +1008,31 @@ export function registerRoutes(app: Express): Server {
         .update(artworks)
         .set({ title })
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         )
         .returning();
 
       res.json(artwork);
     } catch (error) {
-      console.error('Error updating artwork title:', error);
+      console.error("Error updating artwork title:", error);
       res.status(500).json({ error: "Error updating artwork title" });
     }
   });
 
   app.get("/api/subscription/config", (req, res) => {
     try {
-      console.log('Fetching Stripe config');
+      console.log("Fetching Stripe config");
 
       // In test mode or if Stripe keys are not configured, return mock data
-      if (!process.env.STRIPE_SECRET_KEY || process.env.NODE_ENV !== 'production') {
-        console.log('Running in test mode - returning mock subscription data');
+      if (
+        !process.env.STRIPE_SECRET_KEY ||
+        process.env.NODE_ENV !== "production"
+      ) {
+        console.log("Running in test mode - returning mock subscription data");
         return res.json({
-          basicPriceId: 'mock_basic_price',
-          proPriceId: 'mock_pro_price',
-          mode: 'test'
+          basicPriceId: "mock_basic_price",
+          proPriceId: "mock_pro_price",
+          mode: "test",
         });
       }
 
@@ -913,15 +1040,15 @@ export function registerRoutes(app: Express): Server {
       res.json({
         basicPriceId: SUBSCRIPTION_PRICES.basic,
         proPriceId: SUBSCRIPTION_PRICES.pro,
-        mode: 'live'
+        mode: "live",
       });
     } catch (error) {
-      console.error('Error fetching Stripe config:', error);
+      console.error("Error fetching Stripe config:", error);
       // Fallback to test mode on error
       res.json({
-        basicPriceId: 'mock_basic_price',
-        proPriceId: 'mock_pro_price',
-        mode: 'test'
+        basicPriceId: "mock_basic_price",
+        proPriceId: "mock_pro_price",
+        mode: "test",
       });
     }
   });
@@ -929,8 +1056,8 @@ export function registerRoutes(app: Express): Server {
   // Gallery endpoint
   app.get("/api/gallery", async (req, res) => {
     try {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Fetching gallery data for user:', req.user?.id);
+      if (process.env.NODE_ENV !== "production") {
+        console.log("Fetching gallery data for user:", req.user?.id);
       }
       const publicArtworks = await db
         .select({
@@ -954,13 +1081,13 @@ export function registerRoutes(app: Express): Server {
         .groupBy(artworks.id, users.id, users.username)
         .orderBy(desc(artworks.createdAt));
 
-      console.log('Gallery data:', JSON.stringify(publicArtworks[0], null, 2));
+      console.log("Gallery data:", JSON.stringify(publicArtworks[0], null, 2));
       res.json(publicArtworks);
     } catch (error) {
-      console.error('Error fetching gallery:', {
+      console.error("Error fetching gallery:", {
         error: error instanceof Error ? error.message : String(error),
         code: (error as any)?.code,
-        query: 'gallery fetch'
+        query: "gallery fetch",
       });
       res.status(500).send("Error fetching gallery");
     }
@@ -989,33 +1116,34 @@ export function registerRoutes(app: Express): Server {
 
       res.json(artworkComments);
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      console.error("Error fetching comments:", error);
       res.status(500).send("Error fetching comments");
     }
   });
 
   // Add a comment to an artwork
-  app.delete("/api/artwork/:artworkId/comments/:commentId", async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || !req.user.isAdmin) {
-        return res.status(403).send("Not authorized");
+  app.delete(
+    "/api/artwork/:artworkId/comments/:commentId",
+    async (req, res) => {
+      try {
+        if (!req.isAuthenticated() || !req.user.isAdmin) {
+          return res.status(403).send("Not authorized");
+        }
+
+        const commentId = parseInt(req.params.commentId);
+        if (isNaN(commentId)) {
+          return res.status(400).send("Invalid comment ID");
+        }
+
+        await db.delete(comments).where(eq(comments.id, commentId));
+
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Error deleting comment:", error);
+        res.status(500).send("Error deleting comment");
       }
-
-      const commentId = parseInt(req.params.commentId);
-      if (isNaN(commentId)) {
-        return res.status(400).send("Invalid comment ID");
-      }
-
-      await db
-        .delete(comments)
-        .where(eq(comments.id, commentId));
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error deleting comment:', error);
-      res.status(500).send("Error deleting comment");
-    }
-  });
+    },
+  );
 
   app.post("/api/artwork/:id/comments", async (req, res) => {
     try {
@@ -1053,7 +1181,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json(comment);
     } catch (error) {
-      console.error('Error adding comment:', error);
+      console.error("Error adding comment:", error);
       res.status(500).send("Error adding comment");
     }
   });
@@ -1071,7 +1199,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       const { score } = req.body;
-      if (typeof score !== 'number' || score < 1 || score > 5) {
+      if (typeof score !== "number" || score < 1 || score > 5) {
         return res.status(400).send("Score must be between 1 and 5");
       }
 
@@ -1081,8 +1209,8 @@ export function registerRoutes(app: Express): Server {
         .where(
           and(
             eq(ratings.artworkId, artworkId),
-            eq(ratings.userId, req.user.id)
-          )
+            eq(ratings.userId, req.user.id),
+          ),
         );
 
       if (existingRating) {
@@ -1105,7 +1233,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json(rating);
     } catch (error) {
-      console.error('Error rating artwork:', error);
+      console.error("Error rating artwork:", error);
       res.status(500).send("Error rating artwork");
     }
   });
@@ -1129,10 +1257,7 @@ export function registerRoutes(app: Express): Server {
         .select()
         .from(artworks)
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         );
 
       if (!currentArtwork) {
@@ -1144,16 +1269,13 @@ export function registerRoutes(app: Express): Server {
         .update(artworks)
         .set({ isPublic: !currentArtwork.isPublic })
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         )
         .returning();
 
       res.json(artwork);
     } catch (error) {
-      console.error('Error updating artwork visibility:', error);
+      console.error("Error updating artwork visibility:", error);
       res.status(500).json({ error: "Error updating artwork visibility" });
     }
   });
@@ -1171,23 +1293,18 @@ export function registerRoutes(app: Express): Server {
       }
 
       // First delete all comments associated with the artwork
-      await db
-        .delete(comments)
-        .where(eq(comments.artworkId, artworkId));
+      await db.delete(comments).where(eq(comments.artworkId, artworkId));
 
       // Then delete the artwork itself
       await db
         .delete(artworks)
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         );
 
       res.json({ success: true });
     } catch (error) {
-      console.error('Error deleting artwork:', error);
+      console.error("Error deleting artwork:", error);
       res.status(500).json({ error: "Error deleting artwork" });
     }
   });
@@ -1224,7 +1341,7 @@ export function registerRoutes(app: Express): Server {
         .values({ key, value })
         .onConflictDoUpdate({
           target: adminSettings.key,
-          set: { value, updatedAt: new Date() }
+          set: { value, updatedAt: new Date() },
         })
         .returning();
       res.json(setting);
@@ -1237,7 +1354,7 @@ export function registerRoutes(app: Express): Server {
   // Add logging to the /api/artwork endpoint
   app.get("/api/artwork", async (req, res) => {
     try {
-      console.log('Fetching artworks for user:', req.user?.id);
+      console.log("Fetching artworks for user:", req.user?.id);
       const userArtworks = await db
         .select({
           id: artworks.id,
@@ -1275,7 +1392,7 @@ export function registerRoutes(app: Express): Server {
                 FROM ${styleComparisons} sc2
                 WHERE sc2.previous_artwork_id = ${artworks.id}
               )
-            )`
+            )`,
         })
         .from(artworks)
         .leftJoin(feedback, eq(feedback.artworkId, artworks.id))
@@ -1283,10 +1400,10 @@ export function registerRoutes(app: Express): Server {
         .groupBy(artworks.id)
         .orderBy(desc(artworks.createdAt));
 
-      console.log('Found artworks:', userArtworks.length);
+      console.log("Found artworks:", userArtworks.length);
       res.json(userArtworks);
     } catch (error) {
-      console.error('Error fetching artworks:', error);
+      console.error("Error fetching artworks:", error);
       res.status(500).send("Error fetching artworks");
     }
   });
@@ -1294,31 +1411,31 @@ export function registerRoutes(app: Express): Server {
   // Subscription routes with enhanced logging
   app.post("/api/subscription/create-checkout-session", async (req, res) => {
     try {
-      console.log('Received checkout session request:', {
+      console.log("Received checkout session request:", {
         userId: req.user?.id,
-        body: req.body
+        body: req.body,
       });
 
       if (!req.isAuthenticated()) {
-        console.log('User not authenticated');
+        console.log("User not authenticated");
         return res.status(401).send("Not authenticated");
       }
 
       const { priceId } = req.body;
       if (!priceId) {
-        console.log('Missing priceId in request');
+        console.log("Missing priceId in request");
         return res.status(400).send("Price ID is required");
       }
 
-      console.log('Creating checkout session with:', {
+      console.log("Creating checkout session with:", {
         userId: req.user.id,
-        priceId: priceId
+        priceId: priceId,
       });
 
       const session = await createStripeCheckoutSession(req.user.id, priceId);
-      console.log('Checkout session created:', {
+      console.log("Checkout session created:", {
         sessionId: session.id,
-        url: session.url
+        url: session.url,
       });
 
       res.json({ url: session.url });
@@ -1326,39 +1443,43 @@ export function registerRoutes(app: Express): Server {
       console.error("Error creating checkout session:", {
         error: error instanceof Error ? error.message : error,
         userId: req.user?.id,
-        body: req.body
+        body: req.body,
       });
       res.status(500).send("Error creating checkout session");
     }
   });
 
   // Stripe webhook endpoint
-  app.post("/api/stripe/webhook", express.raw({ type: 'application/json' }), async (req, res) => {
-    try {
-      console.log('Received Stripe webhook');
-      const signature = req.headers["stripe-signature"];
-      if (!signature) {
-        console.log('Missing Stripe signature');
-        return res.status(400).send("Stripe signature is required");
-      }
+  app.post(
+    "/api/stripe/webhook",
+    express.raw({ type: "application/json" }),
+    async (req, res) => {
+      try {
+        console.log("Received Stripe webhook");
+        const signature = req.headers["stripe-signature"];
+        if (!signature) {
+          console.log("Missing Stripe signature");
+          return res.status(400).send("Stripe signature is required");
+        }
 
-      const result = await handleStripeWebhook(signature, req.body);
-      console.log('Webhook processed successfully');
-      res.json(result);
-    } catch (err) {
-      const error = err as Error;
-      console.error("Error handling webhook:", {
-        error: error.message,
-        type: req.headers["stripe-webhook-type"]
-      });
-      res.status(400).send(`Webhook Error: ${error.message}`);
-    }
-  });
+        const result = await handleStripeWebhook(signature, req.body);
+        console.log("Webhook processed successfully");
+        res.json(result);
+      } catch (err) {
+        const error = err as Error;
+        console.error("Error handling webhook:", {
+          error: error.message,
+          type: req.headers["stripe-webhook-type"],
+        });
+        res.status(400).send(`Webhook Error: ${error.message}`);
+      }
+    },
+  );
 
   // Admin routes
   app.get("/api/admin/subscription-plans", requireAdmin, async (req, res) => {
     try {
-      console.log('Fetching subscription plans for admin');
+      console.log("Fetching subscription plans for admin");
       const plans = await db
         .select()
         .from(subscriptionPlans)
@@ -1371,26 +1492,17 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.put("/api/admin/subscription-plans/:id", requireAdmin, async (req, res) => {
-    try {
-      const planId = parseInt(req.params.id);
-      if (isNaN(planId)) {
-        return res.status(400).send("Invalid plan ID");
-      }
+  app.put(
+    "/api/admin/subscription-plans/:id",
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const planId = parseInt(req.params.id);
+        if (isNaN(planId)) {
+          return res.status(400).send("Invalid plan ID");
+        }
 
-      const {
-        name,
-        description,
-        monthlyPrice,
-        yearlyPrice,
-        monthlyUploadLimit,
-        features,
-        isActive,
-      } = req.body;
-
-      const [updatedPlan] = await db
-        .update(subscriptionPlans)
-        .set({
+        const {
           name,
           description,
           monthlyPrice,
@@ -1398,21 +1510,34 @@ export function registerRoutes(app: Express): Server {
           monthlyUploadLimit,
           features,
           isActive,
-          updatedAt: new Date(),
-        })
-        .where(eq(subscriptionPlans.id, planId))
-        .returning();
+        } = req.body;
 
-      res.json(updatedPlan);
-    } catch (error) {
-      console.error("Error updating subscription plan:", error);
-      res.status(500).send("Error updating subscription plan");
-    }
-  });
+        const [updatedPlan] = await db
+          .update(subscriptionPlans)
+          .set({
+            name,
+            description,
+            monthlyPrice,
+            yearlyPrice,
+            monthlyUploadLimit,
+            features,
+            isActive,
+            updatedAt: new Date(),
+          })
+          .where(eq(subscriptionPlans.id, planId))
+          .returning();
+
+        res.json(updatedPlan);
+      } catch (error) {
+        console.error("Error updating subscription plan:", error);
+        res.status(500).send("Error updating subscription plan");
+      }
+    },
+  );
 
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
-      console.log('Fetching users for admin');
+      console.log("Fetching users for admin");
       const allUsers = await db
         .select({
           id: users.id,
@@ -1441,7 +1566,7 @@ export function registerRoutes(app: Express): Server {
         username,
         email,
         isAdmin,
-        subscriptionTier
+        subscriptionTier,
       });
     }
     res.status(401).send("Not logged in");
@@ -1453,7 +1578,7 @@ export function registerRoutes(app: Express): Server {
     }
 
     const { username, email } = req.body;
-    
+
     try {
       const [updatedUser] = await db
         .update(users)
@@ -1467,7 +1592,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.patch("/api/artwork/:id/title", async (req, res) => {    try {
+  app.patch("/api/artwork/:id/title", async (req, res) => {
+    try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -1483,31 +1609,31 @@ export function registerRoutes(app: Express): Server {
         .update(artworks)
         .set({ title })
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         )
         .returning();
 
       res.json(artwork);
     } catch (error) {
-      console.error('Error updating artwork title:', error);
+      console.error("Error updating artwork title:", error);
       res.status(500).json({ error: "Error updating artwork title" });
     }
   });
 
   app.get("/api/subscription/config", (req, res) => {
     try {
-      console.log('Fetching Stripe config');
+      console.log("Fetching Stripe config");
 
       // In test mode or if Stripe keys are not configured, return mock data
-      if (!process.env.STRIPE_SECRET_KEY || process.env.NODE_ENV !== 'production') {
-        console.log('Running in test mode - returning mock subscription data');
+      if (
+        !process.env.STRIPE_SECRET_KEY ||
+        process.env.NODE_ENV !== "production"
+      ) {
+        console.log("Running in test mode - returning mock subscription data");
         return res.json({
-          basicPriceId: 'mock_basic_price',
-          proPriceId: 'mock_pro_price',
-          mode: 'test'
+          basicPriceId: "mock_basic_price",
+          proPriceId: "mock_pro_price",
+          mode: "test",
         });
       }
 
@@ -1515,15 +1641,15 @@ export function registerRoutes(app: Express): Server {
       res.json({
         basicPriceId: SUBSCRIPTION_PRICES.basic,
         proPriceId: SUBSCRIPTION_PRICES.pro,
-        mode: 'live'
+        mode: "live",
       });
     } catch (error) {
-      console.error('Error fetching Stripe config:', error);
+      console.error("Error fetching Stripe config:", error);
       // Fallback to test mode on error
       res.json({
-        basicPriceId: 'mock_basic_price',
-        proPriceId: 'mock_pro_price',
-        mode: 'test'
+        basicPriceId: "mock_basic_price",
+        proPriceId: "mock_pro_price",
+        mode: "test",
       });
     }
   });
@@ -1531,8 +1657,8 @@ export function registerRoutes(app: Express): Server {
   // Gallery endpoint
   app.get("/api/gallery", async (req, res) => {
     try {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Fetching gallery data for user:', req.user?.id);
+      if (process.env.NODE_ENV !== "production") {
+        console.log("Fetching gallery data for user:", req.user?.id);
       }
       const publicArtworks = await db
         .select({
@@ -1556,13 +1682,13 @@ export function registerRoutes(app: Express): Server {
         .groupBy(artworks.id, users.id, users.username)
         .orderBy(desc(artworks.createdAt));
 
-      console.log('Gallery data:', JSON.stringify(publicArtworks[0], null, 2));
+      console.log("Gallery data:", JSON.stringify(publicArtworks[0], null, 2));
       res.json(publicArtworks);
     } catch (error) {
-      console.error('Error fetching gallery:', {
+      console.error("Error fetching gallery:", {
         error: error instanceof Error ? error.message : String(error),
         code: (error as any)?.code,
-        query: 'gallery fetch'
+        query: "gallery fetch",
       });
       res.status(500).send("Error fetching gallery");
     }
@@ -1591,33 +1717,34 @@ export function registerRoutes(app: Express): Server {
 
       res.json(artworkComments);
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      console.error("Error fetching comments:", error);
       res.status(500).send("Error fetching comments");
     }
   });
 
   // Add a comment to an artwork
-  app.delete("/api/artwork/:artworkId/comments/:commentId", async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || !req.user.isAdmin) {
-        return res.status(403).send("Not authorized");
+  app.delete(
+    "/api/artwork/:artworkId/comments/:commentId",
+    async (req, res) => {
+      try {
+        if (!req.isAuthenticated() || !req.user.isAdmin) {
+          return res.status(403).send("Not authorized");
+        }
+
+        const commentId = parseInt(req.params.commentId);
+        if (isNaN(commentId)) {
+          return res.status(400).send("Invalid comment ID");
+        }
+
+        await db.delete(comments).where(eq(comments.id, commentId));
+
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Error deleting comment:", error);
+        res.status(500).send("Error deleting comment");
       }
-
-      const commentId = parseInt(req.params.commentId);
-      if (isNaN(commentId)) {
-        return res.status(400).send("Invalid comment ID");
-      }
-
-      await db
-        .delete(comments)
-        .where(eq(comments.id, commentId));
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error deleting comment:', error);
-      res.status(500).send("Error deleting comment");
-    }
-  });
+    },
+  );
 
   app.post("/api/artwork/:id/comments", async (req, res) => {
     try {
@@ -1655,7 +1782,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json(comment);
     } catch (error) {
-      console.error('Error adding comment:', error);
+      console.error("Error adding comment:", error);
       res.status(500).send("Error adding comment");
     }
   });
@@ -1673,7 +1800,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       const { score } = req.body;
-      if (typeof score !== 'number' || score < 1 || score > 5) {
+      if (typeof score !== "number" || score < 1 || score > 5) {
         return res.status(400).send("Score must be between 1 and 5");
       }
 
@@ -1683,8 +1810,8 @@ export function registerRoutes(app: Express): Server {
         .where(
           and(
             eq(ratings.artworkId, artworkId),
-            eq(ratings.userId, req.user.id)
-          )
+            eq(ratings.userId, req.user.id),
+          ),
         );
 
       if (existingRating) {
@@ -1707,7 +1834,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json(rating);
     } catch (error) {
-      console.error('Error rating artwork:', error);
+      console.error("Error rating artwork:", error);
       res.status(500).send("Error rating artwork");
     }
   });
@@ -1731,10 +1858,7 @@ export function registerRoutes(app: Express): Server {
         .select()
         .from(artworks)
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         );
 
       if (!currentArtwork) {
@@ -1746,16 +1870,13 @@ export function registerRoutes(app: Express): Server {
         .update(artworks)
         .set({ isPublic: !currentArtwork.isPublic })
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         )
         .returning();
 
       res.json(artwork);
     } catch (error) {
-      console.error('Error updating artwork visibility:', error);
+      console.error("Error updating artwork visibility:", error);
       res.status(500).json({ error: "Error updating artwork visibility" });
     }
   });
@@ -1773,23 +1894,18 @@ export function registerRoutes(app: Express): Server {
       }
 
       // First delete all comments associated with the artwork
-      await db
-        .delete(comments)
-        .where(eq(comments.artworkId, artworkId));
+      await db.delete(comments).where(eq(comments.artworkId, artworkId));
 
       // Then delete the artwork itself
       await db
         .delete(artworks)
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         );
 
       res.json({ success: true });
     } catch (error) {
-      console.error('Error deleting artwork:', error);
+      console.error("Error deleting artwork:", error);
       res.status(500).json({ error: "Error deleting artwork" });
     }
   });
@@ -1826,7 +1942,7 @@ export function registerRoutes(app: Express): Server {
         .values({ key, value })
         .onConflictDoUpdate({
           target: adminSettings.key,
-          set: { value, updatedAt: new Date() }
+          set: { value, updatedAt: new Date() },
         })
         .returning();
       res.json(setting);
@@ -1839,7 +1955,7 @@ export function registerRoutes(app: Express): Server {
   // Add logging to the /api/artwork endpoint
   app.get("/api/artwork", async (req, res) => {
     try {
-      console.log('Fetching artworks for user:', req.user?.id);
+      console.log("Fetching artworks for user:", req.user?.id);
       const userArtworks = await db
         .select({
           id: artworks.id,
@@ -1877,7 +1993,7 @@ export function registerRoutes(app: Express): Server {
                 FROM ${styleComparisons} sc2
                 WHERE sc2.previous_artwork_id = ${artworks.id}
               )
-            )`
+            )`,
         })
         .from(artworks)
         .leftJoin(feedback, eq(feedback.artworkId, artworks.id))
@@ -1885,10 +2001,10 @@ export function registerRoutes(app: Express): Server {
         .groupBy(artworks.id)
         .orderBy(desc(artworks.createdAt));
 
-      console.log('Found artworks:', userArtworks.length);
+      console.log("Found artworks:", userArtworks.length);
       res.json(userArtworks);
     } catch (error) {
-      console.error('Error fetching artworks:', error);
+      console.error("Error fetching artworks:", error);
       res.status(500).send("Error fetching artworks");
     }
   });
@@ -1896,31 +2012,31 @@ export function registerRoutes(app: Express): Server {
   // Subscription routes with enhanced logging
   app.post("/api/subscription/create-checkout-session", async (req, res) => {
     try {
-      console.log('Received checkout session request:', {
+      console.log("Received checkout session request:", {
         userId: req.user?.id,
-        body: req.body
+        body: req.body,
       });
 
       if (!req.isAuthenticated()) {
-        console.log('User not authenticated');
+        console.log("User not authenticated");
         return res.status(401).send("Not authenticated");
       }
 
       const { priceId } = req.body;
       if (!priceId) {
-        console.log('Missing priceId in request');
+        console.log("Missing priceId in request");
         return res.status(400).send("Price ID is required");
       }
 
-      console.log('Creating checkout session with:', {
+      console.log("Creating checkout session with:", {
         userId: req.user.id,
-        priceId: priceId
+        priceId: priceId,
       });
 
       const session = await createStripeCheckoutSession(req.user.id, priceId);
-      console.log('Checkout session created:', {
+      console.log("Checkout session created:", {
         sessionId: session.id,
-        url: session.url
+        url: session.url,
       });
 
       res.json({ url: session.url });
@@ -1928,39 +2044,43 @@ export function registerRoutes(app: Express): Server {
       console.error("Error creating checkout session:", {
         error: error instanceof Error ? error.message : error,
         userId: req.user?.id,
-        body: req.body
+        body: req.body,
       });
       res.status(500).send("Error creating checkout session");
     }
   });
 
   // Stripe webhook endpoint
-  app.post("/api/stripe/webhook", express.raw({ type: 'application/json' }), async (req, res) => {
-    try {
-      console.log('Received Stripe webhook');
-      const signature = req.headers["stripe-signature"];
-      if (!signature) {
-        console.log('Missing Stripe signature');
-        return res.status(400).send("Stripe signature is required");
-      }
+  app.post(
+    "/api/stripe/webhook",
+    express.raw({ type: "application/json" }),
+    async (req, res) => {
+      try {
+        console.log("Received Stripe webhook");
+        const signature = req.headers["stripe-signature"];
+        if (!signature) {
+          console.log("Missing Stripe signature");
+          return res.status(400).send("Stripe signature is required");
+        }
 
-      const result = await handleStripeWebhook(signature, req.body);
-      console.log('Webhook processed successfully');
-      res.json(result);
-    } catch (err) {
-      const error = err as Error;
-      console.error("Error handling webhook:", {
-        error: error.message,
-        type: req.headers["stripe-webhook-type"]
-      });
-      res.status(400).send(`Webhook Error: ${error.message}`);
-    }
-  });
+        const result = await handleStripeWebhook(signature, req.body);
+        console.log("Webhook processed successfully");
+        res.json(result);
+      } catch (err) {
+        const error = err as Error;
+        console.error("Error handling webhook:", {
+          error: error.message,
+          type: req.headers["stripe-webhook-type"],
+        });
+        res.status(400).send(`Webhook Error: ${error.message}`);
+      }
+    },
+  );
 
   // Admin routes
   app.get("/api/admin/subscription-plans", requireAdmin, async (req, res) => {
     try {
-      console.log('Fetching subscription plans for admin');
+      console.log("Fetching subscription plans for admin");
       const plans = await db
         .select()
         .from(subscriptionPlans)
@@ -1973,26 +2093,17 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.put("/api/admin/subscription-plans/:id", requireAdmin, async (req, res) => {
-    try {
-      const planId = parseInt(req.params.id);
-      if (isNaN(planId)) {
-        return res.status(400).send("Invalid plan ID");
-      }
+  app.put(
+    "/api/admin/subscription-plans/:id",
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const planId = parseInt(req.params.id);
+        if (isNaN(planId)) {
+          return res.status(400).send("Invalid plan ID");
+        }
 
-      const {
-        name,
-        description,
-        monthlyPrice,
-        yearlyPrice,
-        monthlyUploadLimit,
-        features,
-        isActive,
-      } = req.body;
-
-      const [updatedPlan] = await db
-        .update(subscriptionPlans)
-        .set({
+        const {
           name,
           description,
           monthlyPrice,
@@ -2000,21 +2111,34 @@ export function registerRoutes(app: Express): Server {
           monthlyUploadLimit,
           features,
           isActive,
-          updatedAt: new Date(),
-        })
-        .where(eq(subscriptionPlans.id, planId))
-        .returning();
+        } = req.body;
 
-      res.json(updatedPlan);
-    } catch (error) {
-      console.error("Error updating subscription plan:", error);
-      res.status(500).send("Error updating subscription plan");
-    }
-  });
+        const [updatedPlan] = await db
+          .update(subscriptionPlans)
+          .set({
+            name,
+            description,
+            monthlyPrice,
+            yearlyPrice,
+            monthlyUploadLimit,
+            features,
+            isActive,
+            updatedAt: new Date(),
+          })
+          .where(eq(subscriptionPlans.id, planId))
+          .returning();
+
+        res.json(updatedPlan);
+      } catch (error) {
+        console.error("Error updating subscription plan:", error);
+        res.status(500).send("Error updating subscription plan");
+      }
+    },
+  );
 
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
-      console.log('Fetching users for admin');
+      console.log("Fetching users for admin");
       const allUsers = await db
         .select({
           id: users.id,
@@ -2043,7 +2167,7 @@ export function registerRoutes(app: Express): Server {
         username,
         email,
         isAdmin,
-        subscriptionTier
+        subscriptionTier,
       });
     }
     res.status(401).send("Not logged in");
@@ -2055,7 +2179,7 @@ export function registerRoutes(app: Express): Server {
     }
 
     const { username, email } = req.body;
-    
+
     try {
       const [updatedUser] = await db
         .update(users)
@@ -2069,7 +2193,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.patch("/api/artwork/:id/title", async (req, res) => {    try {
+  app.patch("/api/artwork/:id/title", async (req, res) => {
+    try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -2085,31 +2210,31 @@ export function registerRoutes(app: Express): Server {
         .update(artworks)
         .set({ title })
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         )
         .returning();
 
       res.json(artwork);
     } catch (error) {
-      console.error('Error updating artwork title:', error);
+      console.error("Error updating artwork title:", error);
       res.status(500).json({ error: "Error updating artwork title" });
     }
   });
 
   app.get("/api/subscription/config", (req, res) => {
     try {
-      console.log('Fetching Stripe config');
+      console.log("Fetching Stripe config");
 
       // In test mode or if Stripe keys are not configured, return mock data
-      if (!process.env.STRIPE_SECRET_KEY || process.env.NODE_ENV !== 'production') {
-        console.log('Running in test mode - returning mock subscription data');
+      if (
+        !process.env.STRIPE_SECRET_KEY ||
+        process.env.NODE_ENV !== "production"
+      ) {
+        console.log("Running in test mode - returning mock subscription data");
         return res.json({
-          basicPriceId: 'mock_basic_price',
-          proPriceId: 'mock_pro_price',
-          mode: 'test'
+          basicPriceId: "mock_basic_price",
+          proPriceId: "mock_pro_price",
+          mode: "test",
         });
       }
 
@@ -2117,15 +2242,15 @@ export function registerRoutes(app: Express): Server {
       res.json({
         basicPriceId: SUBSCRIPTION_PRICES.basic,
         proPriceId: SUBSCRIPTION_PRICES.pro,
-        mode: 'live'
+        mode: "live",
       });
     } catch (error) {
-      console.error('Error fetching Stripe config:', error);
+      console.error("Error fetching Stripe config:", error);
       // Fallback to test mode on error
       res.json({
-        basicPriceId: 'mock_basic_price',
-        proPriceId: 'mock_pro_price',
-        mode: 'test'
+        basicPriceId: "mock_basic_price",
+        proPriceId: "mock_pro_price",
+        mode: "test",
       });
     }
   });
@@ -2133,8 +2258,8 @@ export function registerRoutes(app: Express): Server {
   // Gallery endpoint
   app.get("/api/gallery", async (req, res) => {
     try {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Fetching gallery data for user:', req.user?.id);
+      if (process.env.NODE_ENV !== "production") {
+        console.log("Fetching gallery data for user:", req.user?.id);
       }
       const publicArtworks = await db
         .select({
@@ -2158,13 +2283,13 @@ export function registerRoutes(app: Express): Server {
         .groupBy(artworks.id, users.id, users.username)
         .orderBy(desc(artworks.createdAt));
 
-      console.log('Gallery data:', JSON.stringify(publicArtworks[0], null, 2));
+      console.log("Gallery data:", JSON.stringify(publicArtworks[0], null, 2));
       res.json(publicArtworks);
     } catch (error) {
-      console.error('Error fetching gallery:', {
+      console.error("Error fetching gallery:", {
         error: error instanceof Error ? error.message : String(error),
         code: (error as any)?.code,
-        query: 'gallery fetch'
+        query: "gallery fetch",
       });
       res.status(500).send("Error fetching gallery");
     }
@@ -2193,33 +2318,34 @@ export function registerRoutes(app: Express): Server {
 
       res.json(artworkComments);
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      console.error("Error fetching comments:", error);
       res.status(500).send("Error fetching comments");
     }
   });
 
   // Add a comment to an artwork
-  app.delete("/api/artwork/:artworkId/comments/:commentId", async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || !req.user.isAdmin) {
-        return res.status(403).send("Not authorized");
+  app.delete(
+    "/api/artwork/:artworkId/comments/:commentId",
+    async (req, res) => {
+      try {
+        if (!req.isAuthenticated() || !req.user.isAdmin) {
+          return res.status(403).send("Not authorized");
+        }
+
+        const commentId = parseInt(req.params.commentId);
+        if (isNaN(commentId)) {
+          return res.status(400).send("Invalid comment ID");
+        }
+
+        await db.delete(comments).where(eq(comments.id, commentId));
+
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Error deleting comment:", error);
+        res.status(500).send("Error deleting comment");
       }
-
-      const commentId = parseInt(req.params.commentId);
-      if (isNaN(commentId)) {
-        return res.status(400).send("Invalid comment ID");
-      }
-
-      await db
-        .delete(comments)
-        .where(eq(comments.id, commentId));
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error deleting comment:', error);
-      res.status(500).send("Error deleting comment");
-    }
-  });
+    },
+  );
 
   app.post("/api/artwork/:id/comments", async (req, res) => {
     try {
@@ -2257,7 +2383,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json(comment);
     } catch (error) {
-      console.error('Error adding comment:', error);
+      console.error("Error adding comment:", error);
       res.status(500).send("Error adding comment");
     }
   });
@@ -2275,7 +2401,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       const { score } = req.body;
-      if (typeof score !== 'number' || score < 1 || score > 5) {
+      if (typeof score !== "number" || score < 1 || score > 5) {
         return res.status(400).send("Score must be between 1 and 5");
       }
 
@@ -2285,8 +2411,8 @@ export function registerRoutes(app: Express): Server {
         .where(
           and(
             eq(ratings.artworkId, artworkId),
-            eq(ratings.userId, req.user.id)
-          )
+            eq(ratings.userId, req.user.id),
+          ),
         );
 
       if (existingRating) {
@@ -2309,7 +2435,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json(rating);
     } catch (error) {
-      console.error('Error rating artwork:', error);
+      console.error("Error rating artwork:", error);
       res.status(500).send("Error rating artwork");
     }
   });
@@ -2333,10 +2459,7 @@ export function registerRoutes(app: Express): Server {
         .select()
         .from(artworks)
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         );
 
       if (!currentArtwork) {
@@ -2348,16 +2471,13 @@ export function registerRoutes(app: Express): Server {
         .update(artworks)
         .set({ isPublic: !currentArtwork.isPublic })
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         )
         .returning();
 
       res.json(artwork);
     } catch (error) {
-      console.error('Error updating artwork visibility:', error);
+      console.error("Error updating artwork visibility:", error);
       res.status(500).json({ error: "Error updating artwork visibility" });
     }
   });
@@ -2375,23 +2495,18 @@ export function registerRoutes(app: Express): Server {
       }
 
       // First delete all comments associated with the artwork
-      await db
-        .delete(comments)
-        .where(eq(comments.artworkId, artworkId));
+      await db.delete(comments).where(eq(comments.artworkId, artworkId));
 
       // Then delete the artwork itself
       await db
         .delete(artworks)
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         );
 
       res.json({ success: true });
     } catch (error) {
-      console.error('Error deleting artwork:', error);
+      console.error("Error deleting artwork:", error);
       res.status(500).json({ error: "Error deleting artwork" });
     }
   });
@@ -2428,7 +2543,7 @@ export function registerRoutes(app: Express): Server {
         .values({ key, value })
         .onConflictDoUpdate({
           target: adminSettings.key,
-          set: { value, updatedAt: new Date() }
+          set: { value, updatedAt: new Date() },
         })
         .returning();
       res.json(setting);
@@ -2441,7 +2556,7 @@ export function registerRoutes(app: Express): Server {
   // Add logging to the /api/artwork endpoint
   app.get("/api/artwork", async (req, res) => {
     try {
-      console.log('Fetching artworks for user:', req.user?.id);
+      console.log("Fetching artworks for user:", req.user?.id);
       const userArtworks = await db
         .select({
           id: artworks.id,
@@ -2479,7 +2594,7 @@ export function registerRoutes(app: Express): Server {
                 FROM ${styleComparisons} sc2
                 WHERE sc2.previous_artwork_id = ${artworks.id}
               )
-            )`
+            )`,
         })
         .from(artworks)
         .leftJoin(feedback, eq(feedback.artworkId, artworks.id))
@@ -2487,10 +2602,10 @@ export function registerRoutes(app: Express): Server {
         .groupBy(artworks.id)
         .orderBy(desc(artworks.createdAt));
 
-      console.log('Found artworks:', userArtworks.length);
+      console.log("Found artworks:", userArtworks.length);
       res.json(userArtworks);
     } catch (error) {
-      console.error('Error fetching artworks:', error);
+      console.error("Error fetching artworks:", error);
       res.status(500).send("Error fetching artworks");
     }
   });
@@ -2498,31 +2613,31 @@ export function registerRoutes(app: Express): Server {
   // Subscription routes with enhanced logging
   app.post("/api/subscription/create-checkout-session", async (req, res) => {
     try {
-      console.log('Received checkout session request:', {
+      console.log("Received checkout session request:", {
         userId: req.user?.id,
-        body: req.body
+        body: req.body,
       });
 
       if (!req.isAuthenticated()) {
-        console.log('User not authenticated');
+        console.log("User not authenticated");
         return res.status(401).send("Not authenticated");
       }
 
       const { priceId } = req.body;
       if (!priceId) {
-        console.log('Missing priceId in request');
+        console.log("Missing priceId in request");
         return res.status(400).send("Price ID is required");
       }
 
-      console.log('Creating checkout session with:', {
+      console.log("Creating checkout session with:", {
         userId: req.user.id,
-        priceId: priceId
+        priceId: priceId,
       });
 
       const session = await createStripeCheckoutSession(req.user.id, priceId);
-      console.log('Checkout session created:', {
+      console.log("Checkout session created:", {
         sessionId: session.id,
-        url: session.url
+        url: session.url,
       });
 
       res.json({ url: session.url });
@@ -2530,39 +2645,43 @@ export function registerRoutes(app: Express): Server {
       console.error("Error creating checkout session:", {
         error: error instanceof Error ? error.message : error,
         userId: req.user?.id,
-        body: req.body
+        body: req.body,
       });
       res.status(500).send("Error creating checkout session");
     }
   });
 
   // Stripe webhook endpoint
-  app.post("/api/stripe/webhook", express.raw({ type: 'application/json' }), async (req, res) => {
-    try {
-      console.log('Received Stripe webhook');
-      const signature = req.headers["stripe-signature"];
-      if (!signature) {
-        console.log('Missing Stripe signature');
-        return res.status(400).send("Stripe signature is required");
-      }
+  app.post(
+    "/api/stripe/webhook",
+    express.raw({ type: "application/json" }),
+    async (req, res) => {
+      try {
+        console.log("Received Stripe webhook");
+        const signature = req.headers["stripe-signature"];
+        if (!signature) {
+          console.log("Missing Stripe signature");
+          return res.status(400).send("Stripe signature is required");
+        }
 
-      const result = await handleStripeWebhook(signature, req.body);
-      console.log('Webhook processed successfully');
-      res.json(result);
-    } catch (err) {
-      const error = err as Error;
-      console.error("Error handling webhook:", {
-        error: error.message,
-        type: req.headers["stripe-webhook-type"]
-      });
-      res.status(400).send(`Webhook Error: ${error.message}`);
-    }
-  });
+        const result = await handleStripeWebhook(signature, req.body);
+        console.log("Webhook processed successfully");
+        res.json(result);
+      } catch (err) {
+        const error = err as Error;
+        console.error("Error handling webhook:", {
+          error: error.message,
+          type: req.headers["stripe-webhook-type"],
+        });
+        res.status(400).send(`Webhook Error: ${error.message}`);
+      }
+    },
+  );
 
   // Admin routes
   app.get("/api/admin/subscription-plans", requireAdmin, async (req, res) => {
     try {
-      console.log('Fetching subscription plans for admin');
+      console.log("Fetching subscription plans for admin");
       const plans = await db
         .select()
         .from(subscriptionPlans)
@@ -2575,26 +2694,17 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.put("/api/admin/subscription-plans/:id", requireAdmin, async (req, res) => {
-    try {
-      const planId = parseInt(req.params.id);
-      if (isNaN(planId)) {
-        return res.status(400).send("Invalid plan ID");
-      }
+  app.put(
+    "/api/admin/subscription-plans/:id",
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const planId = parseInt(req.params.id);
+        if (isNaN(planId)) {
+          return res.status(400).send("Invalid plan ID");
+        }
 
-      const {
-        name,
-        description,
-        monthlyPrice,
-        yearlyPrice,
-        monthlyUploadLimit,
-        features,
-        isActive,
-      } = req.body;
-
-      const [updatedPlan] = await db
-        .update(subscriptionPlans)
-        .set({
+        const {
           name,
           description,
           monthlyPrice,
@@ -2602,21 +2712,34 @@ export function registerRoutes(app: Express): Server {
           monthlyUploadLimit,
           features,
           isActive,
-          updatedAt: new Date(),
-        })
-        .where(eq(subscriptionPlans.id, planId))
-        .returning();
+        } = req.body;
 
-      res.json(updatedPlan);
-    } catch (error) {
-      console.error("Error updating subscription plan:", error);
-      res.status(500).send("Error updating subscription plan");
-    }
-  });
+        const [updatedPlan] = await db
+          .update(subscriptionPlans)
+          .set({
+            name,
+            description,
+            monthlyPrice,
+            yearlyPrice,
+            monthlyUploadLimit,
+            features,
+            isActive,
+            updatedAt: new Date(),
+          })
+          .where(eq(subscriptionPlans.id, planId))
+          .returning();
+
+        res.json(updatedPlan);
+      } catch (error) {
+        console.error("Error updating subscription plan:", error);
+        res.status(500).send("Error updating subscription plan");
+      }
+    },
+  );
 
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
-      console.log('Fetching users for admin');
+      console.log("Fetching users for admin");
       const allUsers = await db
         .select({
           id: users.id,
@@ -2645,7 +2768,7 @@ export function registerRoutes(app: Express): Server {
         username,
         email,
         isAdmin,
-        subscriptionTier
+        subscriptionTier,
       });
     }
     res.status(401).send("Not logged in");
@@ -2657,7 +2780,7 @@ export function registerRoutes(app: Express): Server {
     }
 
     const { username, email } = req.body;
-    
+
     try {
       const [updatedUser] = await db
         .update(users)
@@ -2671,7 +2794,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.patch("/api/artwork/:id/title", async (req, res) => {    try {
+  app.patch("/api/artwork/:id/title", async (req, res) => {
+    try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -2687,31 +2811,31 @@ export function registerRoutes(app: Express): Server {
         .update(artworks)
         .set({ title })
         .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
+          and(eq(artworks.id, artworkId), eq(artworks.userId, req.user.id)),
         )
         .returning();
 
       res.json(artwork);
     } catch (error) {
-      console.error('Error updating artwork title:', error);
+      console.error("Error updating artwork title:", error);
       res.status(500).json({ error: "Error updating artwork title" });
     }
   });
 
   app.get("/api/subscription/config", (req, res) => {
     try {
-      console.log('Fetching Stripe config');
+      console.log("Fetching Stripe config");
 
       // In test mode or if Stripe keys are not configured, return mock data
-      if (!process.env.STRIPE_SECRET_KEY || process.env.NODE_ENV !== 'production') {
-        console.log('Running in test mode - returning mock subscription data');
+      if (
+        !process.env.STRIPE_SECRET_KEY ||
+        process.env.NODE_ENV !== "production"
+      ) {
+        console.log("Running in test mode - returning mock subscription data");
         return res.json({
-          basicPriceId: 'mock_basic_price',
-          proPriceId: 'mock_pro_price',
-          mode: 'test'
+          basicPriceId: "mock_basic_price",
+          proPriceId: "mock_pro_price",
+          mode: "test",
         });
       }
 
@@ -2719,15 +2843,15 @@ export function registerRoutes(app: Express): Server {
       res.json({
         basicPriceId: SUBSCRIPTION_PRICES.basic,
         proPriceId: SUBSCRIPTION_PRICES.pro,
-        mode: 'live'
+        mode: "live",
       });
     } catch (error) {
-      console.error('Error fetching Stripe config:', error);
+      console.error("Error fetching Stripe config:", error);
       // Fallback to test mode on error
       res.json({
-        basicPriceId: 'mock_basic_price',
-        proPriceId: 'mock_pro_price',
-        mode: 'test'
+        basicPriceId: "mock_basic_price",
+        proPriceId: "mock_pro_price",
+        mode: "test",
       });
     }
   });
