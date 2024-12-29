@@ -339,9 +339,9 @@ export default function Dashboard() {
     <div className="dashboard-container">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Your Creative Space</h1>
+          <h1 className="text-3xl font-bold">Your Artwork</h1>
           <p className="text-muted-foreground mt-2">
-            Easily upload your artwork to receive insightful AI-powered feedback. Track your progress and artistic growth by managing multiple pieces in one place. Stay inspired as you refine your skills over time.
+            Upload your artwork to get AI-powered feedback. Upload multiple pieces to track your progress and artistic development over time.
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
