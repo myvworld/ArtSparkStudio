@@ -129,10 +129,8 @@ export async function analyzeArtwork(
               text: `Analyze this artwork titled "${title}"${goals ? ` with the artist's goals: ${goals}` : ''}. Provide a comprehensive analysis including style, composition, technique, strengths, and areas for improvement. Focus on concrete, actionable feedback.`
             },
             {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`
-              }
+              type: "image",
+              image_data: base64Image
             }
           ]
         }
