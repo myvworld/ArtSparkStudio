@@ -613,37 +613,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.patch("/api/artwork/:id/title", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const artworkId = parseInt(req.params.id);
-      const { title } = req.body;
-
-      if (isNaN(artworkId)) {
-        return res.status(400).json({ error: "Invalid artwork ID" });
-      }
-
-      const [artwork] = await db
-        .update(artworks)
-        .set({ title })
-        .where(
-          and(
-            eq(artworks.id, artworkId),
-            eq(artworks.userId, req.user.id)
-          )
-        )
-        .returning();
-
-      res.json(artwork);
-    } catch (error) {
-      console.error('Error updating artwork title:', error);
-      res.status(500).json({ error: "Error updating artwork title" });
-    }
-  });
-
   const httpServer = createServer(app);
   return httpServer;
 }
