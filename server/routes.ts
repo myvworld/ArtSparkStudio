@@ -218,6 +218,44 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Handle artwork upload
+  app.post("/api/artwork", upload.single('image'), async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      const { title, goals } = req.body;
+      if (!title) {
+        return res.status(400).json({ error: "Title is required" });
+      }
+
+      // Convert image to base64
+      const imageBase64 = req.file.buffer.toString('base64');
+      const imageUrl = `data:${req.file.mimetype};base64,${imageBase64}`;
+
+      const [artwork] = await db
+        .insert(artworks)
+        .values({
+          userId: req.user.id,
+          title,
+          goals: goals || null,
+          imageUrl,
+          isPublic: false,
+        })
+        .returning();
+
+      res.json(artwork);
+    } catch (error) {
+      console.error('Error uploading artwork:', error);
+      res.status(500).json({ error: "Error uploading artwork" });
+    }
+  });
+
   // Add logging to the /api/artwork endpoint
   app.get("/api/artwork", async (req, res) => {
     try {
