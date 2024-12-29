@@ -107,7 +107,7 @@ export async function analyzeArtwork(
       throw new Error("Title is required for analysis");
     }
 
-    const validModel = "gpt-4-turbo"; //Corrected:  This variable is now correctly used in the API call
+    const validModel = "gpt-4-vision-preview";
     console.log('Preparing API request:', {
       model: validModel,
       imageSize: base64Image.length,
