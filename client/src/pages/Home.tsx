@@ -8,7 +8,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative h-[90vh] flex items-center justify-center bg-gradient-to-r from-purple-900 via-violet-800 to-purple-900">
+      <section className="relative h-[70vh] flex items-center justify-center bg-gradient-to-r from-purple-900 via-violet-800 to-purple-900">
         <div className="text-center px-4">
           <h1 className="text-5xl md:text-7xl font-bold mb-6 text-white">
             Transform Your Art with AI
