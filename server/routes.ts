@@ -48,6 +48,12 @@ export function registerRoutes(app: Express): Server {
 
   // Add Stripe configuration endpoint with enhanced logging
   app.get("/api/subscription/config", (req, res) => {
+    console.log('Fetching Stripe config:', {
+      basicPriceId: SUBSCRIPTION_PRICES.basic,
+      proPriceId: SUBSCRIPTION_PRICES.pro,
+      mode: process.env.NODE_ENV === 'production' ? 'live' : 'test'
+    });
+
     // Only expose what the client needs
     res.json({
       basicPriceId: SUBSCRIPTION_PRICES.basic,
