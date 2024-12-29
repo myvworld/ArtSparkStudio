@@ -367,7 +367,7 @@ export function registerRoutes(app: Express): Server {
               suggestions: [
                 "Upload your next artwork to see how your style evolves!",
               ],
-              analysis: sanitizedAnalysis,
+              analysis: JSON.parse(JSON.stringify(sanitizedAnalysis)),
             };
 
             console.log(
@@ -377,7 +377,11 @@ export function registerRoutes(app: Express): Server {
 
             const [feedbackEntry] = await db
               .insert(feedback)
-              .values(feedbackToInsert)
+              .values({
+                artworkId: feedbackToInsert.artworkId,
+                suggestions: feedbackToInsert.suggestions,
+                analysis: feedbackToInsert.analysis,
+              })
               .returning();
 
             console.log("Feedback stored successfully:", {
