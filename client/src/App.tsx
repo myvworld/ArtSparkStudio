@@ -130,11 +130,7 @@ function App() {
               <Dashboard />
             </ProtectedRoute>
           </Route>
-          <Route path="/gallery">
-            <ProtectedRoute>
-              <Gallery />
-            </ProtectedRoute>
-          </Route>
+          <Route path="/gallery" component={Gallery} />
           <Route path="/analytics">
             <ProtectedRoute>
               <Analytics />

@@ -1062,9 +1062,7 @@ export function registerRoutes(app: Express): Server {
   // Gallery endpoint
   app.get("/api/gallery", async (req, res) => {
     try {
-      if (process.env.NODE_ENV !== "production") {
-        console.log("Fetching gallery data for user:", req.user?.id);
-      }
+      console.log("Fetching public gallery data");
       const publicArtworks = await db
         .select({
           id: artworks.id,
@@ -1663,9 +1661,7 @@ export function registerRoutes(app: Express): Server {
   // Gallery endpoint
   app.get("/api/gallery", async (req, res) => {
     try {
-      if (process.env.NODE_ENV !== "production") {
-        console.log("Fetching gallery data for user:", req.user?.id);
-      }
+      console.log("Fetching public gallery data");
       const publicArtworks = await db
         .select({
           id: artworks.id,
@@ -2264,9 +2260,7 @@ export function registerRoutes(app: Express): Server {
   // Gallery endpoint
   app.get("/api/gallery", async (req, res) => {
     try {
-      if (process.env.NODE_ENV !== "production") {
-        console.log("Fetching gallery data for user:", req.user?.id);
-      }
+      console.log("Fetching public gallery data");
       const publicArtworks = await db
         .select({
           id: artworks.id,
