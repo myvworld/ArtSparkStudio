@@ -50,6 +50,11 @@ process.on('unhandledRejection', (reason, promise) => {
   try {
     console.log('Starting server initialization...');
 
+    // Test database connection before starting server
+    const { db } = await import('@db');
+    await db.execute(sql`SELECT 1`);
+    console.log('Database connection verified');
+
     const server = registerRoutes(app);
 
     // Enhanced error handling middleware
