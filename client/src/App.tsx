@@ -3,7 +3,7 @@ import { useUser } from "./hooks/use-user";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
-import { Loader2, LineChart } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import AuthPage from "./pages/AuthPage";
 import Home from "./pages/Home";
@@ -12,6 +12,7 @@ import Gallery from "./pages/Gallery";
 import Analytics from "./pages/Analytics";
 import Subscription from "./pages/Subscription";
 import Settings from "./pages/Settings";
+import AdminDashboard from "./pages/AdminDashboard";
 import { Button } from "./components/ui/button";
 import { useLocation } from "wouter";
 
@@ -62,6 +63,14 @@ function App() {
             </Button>
           </div>
           <div className="flex items-center gap-4">
+            {user.isAdmin && (
+              <Button
+                variant={location === "/admin" ? "default" : "ghost"}
+                asChild
+              >
+                <a href="/admin">Admin Dashboard</a>
+              </Button>
+            )}
             <Button
               variant={location === "/subscription" ? "default" : "ghost"}
               asChild
@@ -86,6 +95,7 @@ function App() {
           <Route path="/analytics" component={Analytics} />
           <Route path="/subscription" component={Subscription} />
           <Route path="/settings" component={Settings} />
+          <Route path="/admin" component={AdminDashboard} />
           <Route>
             <Home />
           </Route>
