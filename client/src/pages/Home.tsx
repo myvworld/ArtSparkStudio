@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Image, Sparkles, Brush } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "wouter";
 
 export default function Home() {
   return (
@@ -16,7 +16,7 @@ export default function Home() {
           <p className="text-xl md:text-2xl mb-8 text-gray-200 max-w-2xl mx-auto">
             Elevate your artistic journey with powerful AI analysis and a vibrant community
           </p>
-          <Link to="/auth">
+          <Link href="/auth">
             <Button size="lg" className="text-lg px-8">Get Started</Button>
           </Link>
         </div>
