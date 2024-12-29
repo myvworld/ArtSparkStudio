@@ -195,18 +195,7 @@ export function registerRoutes(app: Express): Server {
                 })
                 .all();
 
-            console.log('Feedback inserted:', {
-              artworkId: feedbackData.artworkId,
-              hasAnalysis: !!feedbackData.analysis
-            });
-
-            console.log('Feedback inserted successfully:', {
-              feedbackId: feedbackEntry.id,
-              artworkId: feedbackData.artworkId,
-              hasAnalysis: !!feedbackEntry.analysis
-            });
-
-              console.log('Feedback stored successfully:', {
+            console.log('Feedback stored successfully:', {
               feedbackId: feedbackEntry.id,
               artworkId: artwork.id,
               hasAnalysis: !!feedbackEntry.analysis
