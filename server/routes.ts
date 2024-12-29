@@ -316,6 +316,12 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid artwork ID" });
       }
 
+      // First delete all comments associated with the artwork
+      await db
+        .delete(comments)
+        .where(eq(comments.artworkId, artworkId));
+
+      // Then delete the artwork itself
       await db
         .delete(artworks)
         .where(
