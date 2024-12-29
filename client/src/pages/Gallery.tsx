@@ -155,7 +155,7 @@ export default function Gallery() {
   };
 
   return (
-    <div className="dashboard-container">
+    <div className="container py-8 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Community Gallery</h1>
