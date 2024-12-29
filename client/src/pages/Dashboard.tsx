@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useArtwork } from "@/hooks/use-artwork";
+import { useArtwork, useUpdateArtworkTitle } from "@/hooks/use-artwork"; // Added useUpdateArtworkTitle
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -251,6 +251,7 @@ export default function Dashboard() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const updateTitleMutation = useUpdateArtworkTitle(); // Added mutation hook
 
   const handleDelete = async (artworkId: number) => {
     try {
@@ -499,6 +500,21 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent>
+                <div className="flex items-center justify-between mb-4">
+                  <input
+                    type="text"
+                    defaultValue={artwork.title}
+                    className="text-xl font-semibold bg-transparent border-none hover:border-gray-300 focus:border-gray-300 focus:ring-0 w-full"
+                    onBlur={(e) => {
+                      if (e.target.value !== artwork.title) {
+                        updateTitleMutation.mutate({
+                          artworkId: artwork.id,
+                          title: e.target.value
+                        });
+                      }
+                    }}
+                  />
+                </div>
                 <img
                   src={artwork.imageUrl}
                   alt={artwork.title}
