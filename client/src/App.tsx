@@ -1,6 +1,5 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation, useNavigate } from "wouter";
 import { useUser } from "./hooks/use-user";
-import { useLocation, useNavigate } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -22,7 +21,7 @@ import { Button } from "./components/ui/button";
 
 function App() {
   const { user, isLoading } = useUser();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
 
   if (isLoading) {
     return (
@@ -106,15 +105,15 @@ function App() {
               <div className="flex gap-2">
                 <Button
                   variant="ghost"
-                  asChild
+                  onClick={() => setLocation("/")}
                 >
-                  <a href="/">Login</a>
+                  Login
                 </Button>
                 <Button
                   variant="default"
-                  asChild
+                  onClick={() => setLocation("/")}
                 >
-                  <a href="/">Register</a>
+                  Register
                 </Button>
               </div>
             )}
