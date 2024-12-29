@@ -1,5 +1,6 @@
 import { Switch, Route } from "wouter";
 import { useUser } from "./hooks/use-user";
+import { useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -67,26 +68,54 @@ function App() {
             </Button>
           </div>
           <div className="flex items-center gap-4">
-            {user.isAdmin && (
-              <Button
-                variant={location === "/admin" ? "default" : "ghost"}
-                asChild
-              >
-                <a href="/admin">Admin Dashboard</a>
-              </Button>
+            {user ? (
+              <>
+                {user.isAdmin && (
+                  <Button
+                    variant={location === "/admin" ? "default" : "ghost"}
+                    asChild
+                  >
+                    <a href="/admin">Admin Dashboard</a>
+                  </Button>
+                )}
+                <Button
+                  variant={location === "/subscription" ? "default" : "ghost"}
+                  asChild
+                >
+                  <a href="/subscription">Subscription</a>
+                </Button>
+                <Button
+                  variant={location === "/settings" ? "default" : "ghost"}
+                  asChild
+                >
+                  <a href="/settings">Settings</a>
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    logout();
+                    setLocation("/");
+                  }}
+                >
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setLocation("/")}
+                >
+                  Login
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={() => setLocation("/")}
+                >
+                  Register
+                </Button>
+              </div>
             )}
-            <Button
-              variant={location === "/subscription" ? "default" : "ghost"}
-              asChild
-            >
-              <a href="/subscription">Subscription</a>
-            </Button>
-            <Button
-              variant={location === "/settings" ? "default" : "ghost"}
-              asChild
-            >
-              <a href="/settings">Settings</a>
-            </Button>
           </div>
         </nav>
       </header>
