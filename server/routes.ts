@@ -201,13 +201,10 @@ export function registerRoutes(app: Express): Server {
             });
 
             console.log('Feedback inserted successfully:', {
-            feedbackId: feedbackEntry.id,
-
-              console.log('Feedback inserted successfully:', {
-                feedbackId: feedbackEntry.id,
-                artworkId: feedbackData.artworkId,
-                hasAnalysis: !!feedbackEntry.analysis
-              });
+              feedbackId: feedbackEntry.id,
+              artworkId: feedbackData.artworkId,
+              hasAnalysis: !!feedbackEntry.analysis
+            });
 
               console.log('Feedback stored successfully:', {
               feedbackId: feedbackEntry.id,
