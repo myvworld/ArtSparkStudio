@@ -28,7 +28,7 @@ export async function initializeOpenAI(): Promise<void> {
     // Verify the API key by making a simple API call
     console.log("Verifying OpenAI API key...");
     const testResponse = await client.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4-turbo",
       messages: [{ role: "system", content: "API key verification test" }],
       max_tokens: 5
     });
@@ -107,7 +107,7 @@ export async function analyzeArtwork(
       throw new Error("Title is required for analysis");
     }
 
-    const validModel = "gpt-4-turbo-preview";
+    const validModel = "gpt-4-turbo";
     console.log('Preparing API request:', {
       model: validModel,
       imageSize: base64Image.length,
