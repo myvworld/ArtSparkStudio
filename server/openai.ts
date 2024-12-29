@@ -98,8 +98,20 @@ export async function analyzeArtwork(
 
     console.log("Preparing OpenAI vision request");
 
+    // Validate request parameters before making API call
+    if (!title.trim()) {
+      throw new Error("Title is required for analysis");
+    }
+
+    const validModel = "gpt-4-vision-preview";
+    console.log('Preparing API request:', {
+      model: validModel,
+      imageSize: base64Image.length,
+      hasGoals: !!goals
+    });
+
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: validModel,
       messages: [
         {
           role: "system",
@@ -125,6 +137,12 @@ export async function analyzeArtwork(
       temperature: 0.7,
       response_format: { type: "json_object" }
     });
+
+    // Validate API response
+    if (!response.choices?.[0]?.message?.content) {
+      console.error('Invalid API response:', response);
+      throw new Error("Invalid response format from OpenAI API");
+    }
 
     if (!response.choices[0]?.message?.content) {
       console.log("Empty response from OpenAI");
