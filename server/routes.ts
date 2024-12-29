@@ -184,8 +184,8 @@ export function registerRoutes(app: Express): Server {
                 .insert(feedback)
                 .values({
                   artworkId: feedbackData.artworkId,
-                  suggestions: feedbackData.suggestions,
-                  analysis: feedbackData.analysis
+                  suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
+                  analysis: JSON.stringify(feedbackData.analysis)
                 })
                 .returning();
 
