@@ -538,6 +538,7 @@ export default function Dashboard() {
                             title: editingTitle
                           });
                           setEditingId(null);
+                          (e.target as HTMLFormElement).closest('dialog')?.close();
                         }
                       }} className="space-y-4">
                         <Input
