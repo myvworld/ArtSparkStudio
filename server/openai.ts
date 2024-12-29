@@ -107,15 +107,15 @@ export async function analyzeArtwork(
       throw new Error("Title is required for analysis");
     }
 
-    const validModel = "gpt-4-turbo";
+    const model = "gpt-4-turbo";
     console.log('Preparing API request:', {
-      model: validModel,
+      model,
       imageSize: base64Image.length,
       hasGoals: !!goals
     });
 
     const response = await openai.chat.completions.create({
-      model: validModel, // Using the correct model for vision tasks
+      model: "gpt-4-turbo", // Using the latest model for vision tasks
       messages: [
         {
           role: "system",
