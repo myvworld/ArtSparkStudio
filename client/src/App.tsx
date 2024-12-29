@@ -19,7 +19,6 @@ import Terms from "./pages/Terms";
 import Copyright from "./pages/Copyright";
 import Privacy from "./pages/Privacy";
 import { Button } from "./components/ui/button";
-import { useLocation } from "wouter";
 
 function App() {
   const { user, isLoading } = useUser();
