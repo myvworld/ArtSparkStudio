@@ -115,7 +115,7 @@ export async function analyzeArtwork(
     });
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo", // Using the latest model for vision tasks
+      model: "gpt-4-turbo", // Using the specified model
       messages: [
         {
           role: "system",
