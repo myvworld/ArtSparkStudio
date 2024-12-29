@@ -75,7 +75,7 @@ process.on('unhandledRejection', (reason, promise) => {
         setTimeout(() => reject(new Error('Database connection timeout')), 5000);
       });
 
-      const dbTest = db.execute<Record<string, number>>(sql`SELECT 1 as test`);
+      const dbTest = db.execute(sql`SELECT 1 as test`);
       await Promise.race([dbTest, dbTimeout]);
 
       console.log('Database connection verified successfully');

@@ -36,6 +36,11 @@ export async function analyzeArtwork(
 ): Promise<ArtAnalysis> {
   try {
     console.log(`Starting artwork analysis for "${title}"`);
+    console.log('Analysis parameters:', {
+      hasTitle: !!title,
+      hasGoals: !!goals,
+      imageSize: imageBase64?.length || 0
+    });
 
     if (!imageBase64) {
       throw new Error("No image data provided for analysis");
@@ -47,25 +52,21 @@ export async function analyzeArtwork(
       throw new Error("Invalid image data format");
     }
 
-    console.log("Preparing OpenAI request with parameters:", {
-      hasTitle: !!title,
-      hasGoals: !!goals,
-      imageSize: base64Image.length
-    });
+    console.log("Preparing OpenAI vision request");
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-4-turbo-vision",
       messages: [
         {
           role: "system",
-          content: "You are an expert art critic and educator. Analyze the artwork and provide detailed feedback in a structured JSON format including style, composition, technique, strengths, improvements, and technical suggestions."
+          content: "You are an expert art critic and educator. Analyze the artwork and provide detailed feedback formatted as a JSON object that matches the ArtAnalysis interface. Include comprehensive analysis of style, composition, technique, strengths, and areas for improvement."
         },
         {
           role: "user",
           content: [
             { 
               type: "text", 
-              text: `Analyze this artwork titled "${title}"${goals ? ` with the artist's goals: ${goals}` : ''}. Provide a comprehensive analysis including style, composition, technique, strengths, and areas for improvement. Include specific technical suggestions for improvement.`
+              text: `Analyze this artwork titled "${title}"${goals ? ` with the artist's goals: ${goals}` : ''}. Provide a comprehensive analysis including style, composition, technique, strengths, and areas for improvement. Focus on concrete, actionable feedback.`
             },
             {
               type: "image_url",
@@ -82,11 +83,18 @@ export async function analyzeArtwork(
     });
 
     if (!response.choices[0]?.message?.content) {
+      console.error("Empty response from OpenAI");
       throw new Error("Empty response from OpenAI");
     }
 
     console.log("Successfully received OpenAI response");
-    const analysis = JSON.parse(response.choices[0].message.content);
+    let analysis;
+    try {
+      analysis = JSON.parse(response.choices[0].message.content);
+    } catch (error) {
+      console.error("Failed to parse OpenAI response:", error);
+      throw new Error("Invalid response format from OpenAI");
+    }
 
     // Ensure the response matches our interface structure
     const structuredAnalysis: ArtAnalysis = {
@@ -117,9 +125,10 @@ export async function analyzeArtwork(
       detailedFeedback: analysis.detailedFeedback || "Detailed feedback unavailable",
       technicalSuggestions: analysis.technicalSuggestions || [],
       learningResources: analysis.learningResources || [],
-      suggestions: analysis.technicalSuggestions || ["No specific suggestions available"]
+      suggestions: analysis.suggestions || []
     };
 
+    console.log("Analysis structured successfully");
     return structuredAnalysis;
   } catch (error: any) {
     console.error("Artwork analysis failed:", {
@@ -128,7 +137,6 @@ export async function analyzeArtwork(
       title,
       hasGoals: !!goals
     });
-
     throw error;
   }
 }
