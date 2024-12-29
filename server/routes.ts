@@ -208,7 +208,7 @@ export function registerRoutes(app: Express): Server {
               const feedbackToInsert = {
                 artworkId: feedbackData.artworkId,
                 suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
-                analysis: feedbackData.analysis 
+                analysis: JSON.stringify(feedbackData.analysis)
               };
 
               const feedbackEntries = await db
