@@ -1,7 +1,6 @@
 import OpenAI from "openai";
 import type { ArtAnalysis } from "./types";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 let openai: OpenAI;
 try {
   openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -61,7 +60,7 @@ export async function analyzeArtwork(
 
     console.log("Sending request to OpenAI API");
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4-vision-preview",
       messages: [
         {
           role: "user",
@@ -88,7 +87,7 @@ export async function analyzeArtwork(
 
     console.log("Successfully received OpenAI response");
     const rawResponse = response.choices[0].message.content;
-    console.log("Raw OpenAI response:", rawResponse);
+    console.log("Raw OpenAI response length:", rawResponse.length);
 
     let analysis;
     try {
@@ -136,13 +135,14 @@ export async function analyzeArtwork(
       technicalSuggestions: analysis.technicalSuggestions || [],
       learningResources: analysis.learningResources || []
     };
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as Error;
     console.error("Artwork analysis failed:", {
-      error: error.message,
-      stack: error.stack
+      message: err.message,
+      stack: err.stack
     });
 
-    if (error.message.includes("OpenAI API error")) {
+    if (err.message.includes("OpenAI API error")) {
       console.log("OpenAI API error - returning mock analysis");
       return getMockAnalysis("API Error");
     }

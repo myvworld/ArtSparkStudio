@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { db } from "@db";
+import { sql } from "drizzle-orm";
 
 const app = express();
 app.use(express.json());
@@ -51,9 +53,14 @@ process.on('unhandledRejection', (reason, promise) => {
     console.log('Starting server initialization...');
 
     // Test database connection before starting server
-    const { db } = await import('@db');
-    await db.execute(sql`SELECT 1`);
-    console.log('Database connection verified');
+    try {
+      console.log('Testing database connection...');
+      await db.execute(sql`SELECT 1 as test`);
+      console.log('Database connection verified');
+    } catch (dbError) {
+      console.error('Database connection test failed:', dbError);
+      throw dbError;
+    }
 
     const server = registerRoutes(app);
 
