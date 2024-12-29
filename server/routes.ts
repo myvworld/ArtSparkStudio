@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import multer from "multer";
 import { setupAuth } from "./auth";
 import { db } from "@db";
+import { analyzeArtwork } from "./openai";
 import { 
   artworks, 
   users, 
