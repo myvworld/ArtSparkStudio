@@ -275,9 +275,43 @@ export default function Gallery() {
                       <div key={comment.id} className="space-y-1">
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-medium">{comment.username}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(comment.createdAt).toLocaleDateString()}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(comment.createdAt).toLocaleDateString()}
+                            </p>
+                            {user?.isAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={async () => {
+                                  try {
+                                    const response = await fetch(
+                                      `/api/artwork/${selectedArtwork?.id}/comments/${comment.id}`,
+                                      {
+                                        method: 'DELETE',
+                                        credentials: 'include',
+                                      }
+                                    );
+                                    if (!response.ok) throw new Error('Failed to delete comment');
+                                    setComments(comments.filter(c => c.id !== comment.id));
+                                    toast({
+                                      title: "Success",
+                                      description: "Comment deleted successfully",
+                                    });
+                                  } catch (error) {
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to delete comment",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                         <p className="text-sm text-muted-foreground">{comment.content}</p>
                       </div>

@@ -125,6 +125,28 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Add a comment to an artwork
+  app.delete("/api/artwork/:artworkId/comments/:commentId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user.isAdmin) {
+        return res.status(403).send("Not authorized");
+      }
+
+      const commentId = parseInt(req.params.commentId);
+      if (isNaN(commentId)) {
+        return res.status(400).send("Invalid comment ID");
+      }
+
+      await db
+        .delete(comments)
+        .where(eq(comments.id, commentId));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      res.status(500).send("Error deleting comment");
+    }
+  });
+
   app.post("/api/artwork/:id/comments", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
