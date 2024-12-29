@@ -262,6 +262,8 @@ export default function Dashboard() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [editingTitle, setEditingTitle] = useState<string>("");
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const handleDelete = async (artworkId: number) => {
     try {
@@ -508,14 +510,45 @@ export default function Dashboard() {
                     </AlertDialogContent>
                   </AlertDialog>
                   {/* Added Edit Button */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    // Add onClick handler for editing title here if needed.  This would require additional backend logic.
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
+                  <Dialog onOpenChange={(open) => {
+                    if (!open) setEditingId(null);
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          setEditingId(artwork.id);
+                          setEditingTitle(artwork.title);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Edit Title</DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (editingId) {
+                          await updateTitle({
+                            artworkId: editingId,
+                            title: editingTitle
+                          });
+                          setEditingId(null);
+                        }
+                      }} className="space-y-4">
+                        <Input
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          placeholder="Enter new title"
+                        />
+                        <Button type="submit" className="w-full">Save</Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </CardHeader>
               <CardContent>
