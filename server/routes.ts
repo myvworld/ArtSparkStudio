@@ -270,9 +270,25 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid artwork ID" });
       }
 
+      // Get current artwork state first
+      const [currentArtwork] = await db
+        .select()
+        .from(artworks)
+        .where(
+          and(
+            eq(artworks.id, artworkId),
+            eq(artworks.userId, req.user.id)
+          )
+        );
+
+      if (!currentArtwork) {
+        return res.status(404).json({ error: "Artwork not found" });
+      }
+
+      // Toggle the isPublic state
       const [artwork] = await db
         .update(artworks)
-        .set({ isPublic })
+        .set({ isPublic: !currentArtwork.isPublic })
         .where(
           and(
             eq(artworks.id, artworkId),
