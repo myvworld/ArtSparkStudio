@@ -18,18 +18,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import {
-  Loader2,
-  Upload,
-  Image as ImageIcon,
-  Palette,
-  Layout,
-  Brush,
-  Trash2,
-  Globe,
-  Lock,
-  Pencil
-} from "lucide-react";
+import { Loader2, Upload, Image as ImageIcon, Palette, Layout, Brush, Trash2, Globe, Lock } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -507,19 +496,10 @@ export default function Dashboard() {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                  {/* Added Edit Button */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    // Add onClick handler for editing title here if needed.  This would require additional backend logic.
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
-
+                
                 <img
                   src={artwork.imageUrl}
                   alt={artwork.title}
