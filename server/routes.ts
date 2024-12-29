@@ -141,14 +141,14 @@ export function registerRoutes(app: Express): Server {
                   artworkId: artwork.id,
                   analysis: {
                     style: {
-                      current: typeof analysis.style === 'string' ? analysis.style : "Unknown style",
+                      current: analysis.style?.toString() || "Unknown style",
                       influences: [],
                       similarArtists: [],
                       period: null,
                       movement: null
                     },
                     composition: {
-                      structure: typeof analysis.composition === 'string' ? analysis.composition : "Not analyzed",
+                      structure: analysis.composition?.toString() || "Not analyzed",
                       balance: "Not analyzed",
                       colorTheory: "Not analyzed",
                       perspective: null,
@@ -156,7 +156,7 @@ export function registerRoutes(app: Express): Server {
                       dynamicElements: []
                     },
                     technique: {
-                      medium: typeof analysis.technique === 'string' ? analysis.technique : "Not specified",
+                      medium: analysis.technique?.toString() || "Not specified",
                       execution: "Not analyzed",
                       skillLevel: "Not analyzed",
                       uniqueApproaches: [],
@@ -164,12 +164,11 @@ export function registerRoutes(app: Express): Server {
                     },
                     strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
                     improvements: Array.isArray(analysis.improvements) ? analysis.improvements : [],
-                    detailedFeedback: analysis.detailedFeedback || "No detailed feedback available",
+                    detailedFeedback: analysis.detailedFeedback?.toString() || "No detailed feedback available",
                     technicalSuggestions: [],
                     learningResources: []
                   },
-                  suggestions: Array.isArray(analysis?.suggestions) && analysis.suggestions.length > 0
-                    ? analysis.suggestions
+                  suggestions: Array.isArray(analysis?.suggestions) ? analysis.suggestions
                     : ['Upload your next artwork to see how your style evolves! The AI will analyze your progress and provide insights on your artistic development.']
             };
 
