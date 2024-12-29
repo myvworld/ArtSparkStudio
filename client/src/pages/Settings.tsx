@@ -99,15 +99,56 @@ export default function Settings() {
           {/* Profile Information */}
           <div className="space-y-4">
             <h3 className="font-semibold">Profile Information</h3>
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary/10 rounded-full">
-                <User className="w-6 h-6 text-primary" />
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const username = formData.get("username") as string;
+              const email = formData.get("email") as string;
+
+              try {
+                const response = await fetch("/api/update-profile", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ username, email }),
+                });
+
+                if (!response.ok) throw new Error();
+
+                toast({
+                  title: "Success",
+                  description: "Profile updated successfully",
+                });
+                
+                window.location.reload();
+              } catch (error) {
+                toast({
+                  title: "Error",
+                  description: "Failed to update profile",
+                  variant: "destructive",
+                });
+              }
+            }} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm">Username</label>
+                <Input
+                  name="username"
+                  defaultValue={user?.username}
+                  required
+                />
               </div>
-              <div>
-                <p className="font-medium">{user?.username}</p>
-                <p className="text-sm text-muted-foreground">{user?.email}</p>
+              <div className="space-y-2">
+                <label className="text-sm">Email</label>
+                <Input
+                  name="email"
+                  type="email"
+                  defaultValue={user?.email}
+                  required
+                />
               </div>
-            </div>
+              <Button type="submit">
+                Update Profile
+              </Button>
+            </form>
           </div>
 
           {/* Change Password */}

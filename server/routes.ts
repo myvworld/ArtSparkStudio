@@ -561,6 +561,40 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.get("/api/user", (req, res) => {
+    if (req.isAuthenticated()) {
+      const { id, username, email, isAdmin, subscriptionTier } = req.user;
+      return res.json({
+        id,
+        username,
+        email,
+        isAdmin,
+        subscriptionTier
+      });
+    }
+    res.status(401).send("Not logged in");
+  });
+
+  app.post("/api/update-profile", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const { username, email } = req.body;
+    
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({ username, email })
+        .where(eq(users.id, req.user.id))
+        .returning();
+
+      res.json(updatedUser);
+    } catch (error) {
+      res.status(500).send("Error updating profile");
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
