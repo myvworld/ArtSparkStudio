@@ -16,6 +16,7 @@ import Settings from "./pages/Settings";
 import AdminDashboard from "./pages/AdminDashboard";
 const Terms = () => import("./pages/Terms").then(module => module.default);
 const Copyright = () => import("./pages/Copyright").then(module => module.default);
+const Privacy = () => import("./pages/Privacy").then(module => module.default); //This line is added
 import { Button } from "./components/ui/button";
 import { useLocation } from "wouter";
 
