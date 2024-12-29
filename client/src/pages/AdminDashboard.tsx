@@ -306,3 +306,31 @@ export default function AdminDashboard() {
     </div>
   );
 }
+  <div className="card">
+    <h3 className="text-lg font-semibold mb-4">Featured Artwork Settings</h3>
+    <div className="space-y-4">
+      <div>
+        <label className="text-sm text-muted-foreground">Number of Featured Images</label>
+        <Input 
+          type="number" 
+          min="1"
+          max="10"
+          defaultValue="5"
+          onChange={async (e) => {
+            try {
+              await fetch('/api/admin/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  key: 'featured_artwork_count',
+                  value: { count: parseInt(e.target.value) }
+                })
+              });
+            } catch (error) {
+              console.error('Error updating setting:', error);
+            }
+          }}
+        />
+      </div>
+    </div>
+  </div>
