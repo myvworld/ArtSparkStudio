@@ -459,9 +459,7 @@ export default function Dashboard() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle>{artwork.title}</CardTitle>
                 <div className="flex items-center gap-2">
-                  <Dialog onOpenChange={(open) => {
-                    if (!open) setEditingId(null);
-                  }}>
+                  <Dialog>
                     <DialogTrigger asChild>
                       <Button
                         variant="ghost"
@@ -487,7 +485,12 @@ export default function Dashboard() {
                             title: editingTitle
                           });
                           setEditingId(null);
-                          (e.target as HTMLFormElement).closest('dialog')?.close();
+                          setEditingTitle("");
+                          const dialog = (e.target as HTMLFormElement).closest('dialog');
+                          if (dialog) {
+                            const dialogInstance = dialog as HTMLDialogElement;
+                            dialogInstance.close();
+                          }
                         }
                       }} className="space-y-4">
                         <Input
