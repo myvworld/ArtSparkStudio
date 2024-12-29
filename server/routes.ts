@@ -271,6 +271,25 @@ export function registerRoutes(app: Express): Server {
         })
         .returning();
 
+      // Analyze the artwork
+      try {
+        const base64Image = imageUrl.split(',')[1];
+        const analysis = await analyzeArtwork(base64Image, title, goals);
+        
+        // Store the analysis
+        const [feedback] = await db
+          .insert(feedback)
+          .values({
+            artworkId: artwork.id,
+            analysis,
+          })
+          .returning();
+
+        artwork.feedback = [feedback];
+      } catch (error) {
+        console.error('Error analyzing artwork:', error);
+      }
+
       res.json(artwork);
     } catch (error) {
       console.error('Error uploading artwork:', error);

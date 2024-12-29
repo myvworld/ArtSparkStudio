@@ -86,7 +86,7 @@ Please provide a detailed analysis in JSON format, making specific references to
 }`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4-vision-preview",
       messages: [
         {
           role: "user",
@@ -135,7 +135,7 @@ Please provide a detailed comparison in JSON format that specifically references
 }`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4-vision-preview",
       messages: [
         {
           role: "user",
