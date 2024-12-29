@@ -20,10 +20,16 @@ const db = drizzle({
 // Test the database connection using a function instead of top-level await
 async function testConnection() {
   try {
+    console.log("Testing database connection...");
     await db.execute(sql`SELECT 1`);
     console.log("Database connection initialized and tested successfully");
   } catch (error) {
-    console.error("Failed to connect to database:", error);
+    console.error("Database connection error:", {
+      message: error instanceof Error ? error.message : String(error),
+      code: (error as any)?.code,
+      stack: error instanceof Error ? error.stack : undefined,
+      connectionUrl: process.env.DATABASE_URL?.replace(/:[^:@]*@/, ':****@')
+    });
     process.exit(1);
   }
 }

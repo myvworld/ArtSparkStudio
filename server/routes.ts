@@ -199,7 +199,11 @@ app.post("/api/artwork", upload.single('image'), async (req, res) => {
       console.log('Gallery data:', JSON.stringify(publicArtworks[0], null, 2));
       res.json(publicArtworks);
     } catch (error) {
-      console.error('Error fetching gallery:', error);
+      console.error('Error fetching gallery:', {
+        error: error instanceof Error ? error.message : String(error),
+        code: (error as any)?.code,
+        query: 'gallery fetch'
+      });
       res.status(500).send("Error fetching gallery");
     }
   });
@@ -410,7 +414,11 @@ app.post("/api/artwork", upload.single('image'), async (req, res) => {
       console.log('Gallery data:', JSON.stringify(publicArtworks[0], null, 2));
       res.json(publicArtworks);
     } catch (error) {
-      console.error('Error fetching gallery:', error);
+      console.error('Error fetching gallery:', {
+        error: error instanceof Error ? error.message : String(error),
+        code: (error as any)?.code,
+        query: 'gallery fetch'
+      });
       res.status(500).send("Error fetching gallery");
     }
   });
