@@ -106,13 +106,13 @@ function App() {
               <div className="flex gap-2">
                 <Button
                   variant="ghost"
-                  onClick={() => setLocation("/")}
+                  onClick={() => window.location.href = "/"}
                 >
                   Login
                 </Button>
                 <Button
                   variant="default"
-                  onClick={() => setLocation("/")}
+                  onClick={() => window.location.href = "/"}
                 >
                   Register
                 </Button>
