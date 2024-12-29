@@ -182,12 +182,18 @@ export function registerRoutes(app: Express): Server {
 
               const [feedbackEntry] = await db
                 .insert(feedback)
-            .values({
-              artworkId: feedbackData.artworkId,
-              suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
-              analysis: typeof feedbackData.analysis === 'string' ? JSON.parse(feedbackData.analysis) : feedbackData.analysis
-            })
-            .returning();
+                .values({
+                  artworkId: feedbackData.artworkId,
+                  suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
+                  analysis: feedbackData.analysis
+                })
+                .returning({
+                  id: feedback.id,
+                  artworkId: feedback.artworkId,
+                  suggestions: feedback.suggestions,
+                  analysis: feedback.analysis
+                })
+                .all();
 
             console.log('Feedback inserted:', {
               artworkId: feedbackData.artworkId,
