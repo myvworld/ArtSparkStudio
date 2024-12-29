@@ -180,20 +180,15 @@ export function registerRoutes(app: Express): Server {
             });
 
 
-              const [feedbackEntry] = await db
+              const feedbackEntry = await db
                 .insert(feedback)
                 .values({
                   artworkId: feedbackData.artworkId,
                   suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
                   analysis: feedbackData.analysis
                 })
-                .returning({
-                  id: feedback.id,
-                  artworkId: feedback.artworkId,
-                  suggestions: feedback.suggestions,
-                  analysis: feedback.analysis
-                })
-                .all();
+                .returning()
+                .get();
 
             console.log('Feedback stored successfully:', {
               feedbackId: feedbackEntry.id,
