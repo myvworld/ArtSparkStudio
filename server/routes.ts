@@ -46,7 +46,7 @@ export function registerRoutes(app: Express): Server {
     next();
   });
 
-  // Add Stripe configuration endpoint
+  // Add Stripe configuration endpoint with enhanced logging
   app.get("/api/subscription/config", (req, res) => {
     // Only expose what the client needs
     res.json({
