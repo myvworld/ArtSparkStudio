@@ -3,6 +3,7 @@ import { useUser } from "./hooks/use-user";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
+import { Footer } from "@/components/ui/footer";
 import { Loader2 } from "lucide-react";
 
 import AuthPage from "./pages/AuthPage";
@@ -96,11 +97,14 @@ function App() {
           <Route path="/subscription" component={Subscription} />
           <Route path="/settings" component={Settings} />
           <Route path="/admin" component={AdminDashboard} />
+          <Route path="/terms" component={Terms} />
+          <Route path="/copyright" component={Copyright} />
           <Route>
             <Home />
           </Route>
         </Switch>
       </main>
+      <Footer />
       <Toaster />
     </div>
   );
