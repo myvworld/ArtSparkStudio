@@ -28,7 +28,7 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [data]);
 
-
+  return (
     <div className="min-h-screen">
       <section className="relative h-[80vh] flex items-center bg-gradient-to-br from-purple-900 via-violet-800 to-purple-900 px-4 overflow-hidden">
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
