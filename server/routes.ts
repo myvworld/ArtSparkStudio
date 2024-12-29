@@ -183,8 +183,9 @@ export function registerRoutes(app: Express): Server {
               const [feedbackEntry] = await db
                 .insert(feedback)
                 .values({
-                  ...feedbackData,
-                  analysis: JSON.stringify(feedbackData.analysis)
+                  artworkId: feedbackData.artworkId,
+                  suggestions: feedbackData.suggestions,
+                  analysis: feedbackData.analysis
                 })
                 .returning();
 
