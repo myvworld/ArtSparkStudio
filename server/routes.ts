@@ -136,8 +136,27 @@ export function registerRoutes(app: Express): Server {
           });
 
           try {
-                // Ensure the analysis object matches the schema structure
-                const feedbackData: NewFeedback = {
+                // Validate analysis object before processing
+              function isValidAnalysis(analysis: any): boolean {
+                return (
+                  analysis &&
+                  typeof analysis === 'object' &&
+                  analysis.style && typeof analysis.style === 'object' &&
+                  analysis.composition && typeof analysis.composition === 'object' &&
+                  analysis.technique && typeof analysis.technique === 'object' &&
+                  Array.isArray(analysis.strengths) &&
+                  Array.isArray(analysis.improvements) &&
+                  typeof analysis.detailedFeedback === 'string'
+                );
+              }
+
+              if (!isValidAnalysis(analysis)) {
+                console.error('Invalid analysis structure:', analysis);
+                throw new Error('Invalid analysis data structure from OpenAI');
+              }
+
+              // Create properly structured feedback data
+              const feedbackData: NewFeedback = {
                   artworkId: artwork.id,
                   analysis: {
                     style: {
@@ -210,8 +229,20 @@ export function registerRoutes(app: Express): Server {
               feedback: [feedbackEntry]
             };
 
-            console.log('Successfully completed artwork upload and analysis');
-            res.json(artworkWithFeedback);
+            try {
+              console.log('Successfully completed artwork upload and analysis');
+              res.json(artworkWithFeedback);
+            } catch (error) {
+              console.error('JSON insert error:', {
+                error: error instanceof Error ? error.message : String(error),
+                feedbackDataShape: {
+                  hasStyle: !!feedbackData.analysis?.style,
+                  hasComposition: !!feedbackData.analysis?.composition,
+                  hasTechnique: !!feedbackData.analysis?.technique
+                }
+              });
+              throw error;
+            }
           } catch (error) {
             console.error('Error processing analysis object:', {
               error: error instanceof Error ? error.message : String(error),
