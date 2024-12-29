@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,7 +37,6 @@ interface Comment {
 }
 
 export default function Gallery() {
-  const { user } = useUser();
   const { toast } = useToast();
   const [selectedArtwork, setSelectedArtwork] = useState<GalleryArtwork | null>(null);
   const [comment, setComment] = useState("");
@@ -162,7 +160,7 @@ export default function Gallery() {
         <div>
           <h1 className="text-3xl font-bold">Community Gallery</h1>
           <p className="text-muted-foreground mt-2">
-            Share your creations with the vibrant ArtSpark community and showcase your talent to a wider audience. Submitted images have the chance to be featured on the landing page, giving your artwork the spotlight it deserves.
+            Explore and engage with artwork from the ArtSpark community
           </p>
         </div>
       </div>
@@ -272,57 +270,14 @@ export default function Gallery() {
                 </div>
               ) : (
                 <>
-                  <div className="bg-purple-950/30 rounded-lg p-4 mb-6 border border-purple-800/30">
-                    <h4 className="font-semibold mb-2">Foster a Positive Community</h4>
-                    <p className="text-sm text-muted-foreground">
-                      At ArtSpark, we believe in uplifting and supporting one another. When commenting on artwork in the Community Gallery, remember to be kind, constructive, and encouraging. Your thoughtful feedback can inspire fellow artists and help nurture a welcoming environment for creativity to thrive.
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Let's celebrate each other's journeys and grow together as a community of creators!
-                    </p>
-                  </div>
                   <div className="space-y-4">
                     {comments.map((comment) => (
                       <div key={comment.id} className="space-y-1">
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-medium">{comment.username}</p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(comment.createdAt).toLocaleDateString()}
-                            </p>
-                            {user?.isAdmin && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={async () => {
-                                  try {
-                                    const response = await fetch(
-                                      `/api/artwork/${selectedArtwork?.id}/comments/${comment.id}`,
-                                      {
-                                        method: 'DELETE',
-                                        credentials: 'include',
-                                      }
-                                    );
-                                    if (!response.ok) throw new Error('Failed to delete comment');
-                                    setComments(comments.filter(c => c.id !== comment.id));
-                                    toast({
-                                      title: "Success",
-                                      description: "Comment deleted successfully",
-                                    });
-                                  } catch (error) {
-                                    toast({
-                                      title: "Error",
-                                      description: "Failed to delete comment",
-                                      variant: "destructive",
-                                    });
-                                  }
-                                }}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(comment.createdAt).toLocaleDateString()}
+                          </p>
                         </div>
                         <p className="text-sm text-muted-foreground">{comment.content}</p>
                       </div>

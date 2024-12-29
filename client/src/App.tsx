@@ -1,10 +1,8 @@
 import { Switch, Route } from "wouter";
 import { useUser } from "./hooks/use-user";
-import { useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
-import { Footer } from "@/components/ui/footer";
 import { Loader2 } from "lucide-react";
 
 import AuthPage from "./pages/AuthPage";
@@ -15,10 +13,8 @@ import Analytics from "./pages/Analytics";
 import Subscription from "./pages/Subscription";
 import Settings from "./pages/Settings";
 import AdminDashboard from "./pages/AdminDashboard";
-import Terms from "./pages/Terms";
-import Copyright from "./pages/Copyright";
-import Privacy from "./pages/Privacy";
 import { Button } from "./components/ui/button";
+import { useLocation } from "wouter";
 
 function App() {
   const { user, isLoading } = useUser();
@@ -67,54 +63,26 @@ function App() {
             </Button>
           </div>
           <div className="flex items-center gap-4">
-            {user ? (
-              <>
-                {user.isAdmin && (
-                  <Button
-                    variant={location === "/admin" ? "default" : "ghost"}
-                    asChild
-                  >
-                    <a href="/admin">Admin Dashboard</a>
-                  </Button>
-                )}
-                <Button
-                  variant={location === "/subscription" ? "default" : "ghost"}
-                  asChild
-                >
-                  <a href="/subscription">Subscription</a>
-                </Button>
-                <Button
-                  variant={location === "/settings" ? "default" : "ghost"}
-                  asChild
-                >
-                  <a href="/settings">Settings</a>
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => {
-                    logout();
-                    setLocation("/");
-                  }}
-                >
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => setLocation("/")}
-                >
-                  Login
-                </Button>
-                <Button
-                  variant="default"
-                  onClick={() => setLocation("/")}
-                >
-                  Register
-                </Button>
-              </div>
+            {user.isAdmin && (
+              <Button
+                variant={location === "/admin" ? "default" : "ghost"}
+                asChild
+              >
+                <a href="/admin">Admin Dashboard</a>
+              </Button>
             )}
+            <Button
+              variant={location === "/subscription" ? "default" : "ghost"}
+              asChild
+            >
+              <a href="/subscription">Subscription</a>
+            </Button>
+            <Button
+              variant={location === "/settings" ? "default" : "ghost"}
+              asChild
+            >
+              <a href="/settings">Settings</a>
+            </Button>
           </div>
         </nav>
       </header>
@@ -128,15 +96,11 @@ function App() {
           <Route path="/subscription" component={Subscription} />
           <Route path="/settings" component={Settings} />
           <Route path="/admin" component={AdminDashboard} />
-          <Route path="/terms" component={Terms} />
-          <Route path="/privacy" component={Privacy} />
-          <Route path="/copyright" component={Copyright} />
           <Route>
             <Home />
           </Route>
         </Switch>
       </main>
-      <Footer />
       <Toaster />
     </div>
   );

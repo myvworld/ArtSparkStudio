@@ -24,11 +24,10 @@ export default function AuthPage() {
     const password = formData.get("password") as string;
     const email = formData.get("email") as string;
     const isLogin = form.dataset.type === "login";
-    const rememberMe = formData.get("rememberMe") as string; // Added for rememberMe
 
     try {
       const result = await (isLogin
-        ? login({ username, password, rememberMe }) // Added rememberMe to login
+        ? login({ username, password })
         : register({ username, password, email }));
 
       if (!result.ok) {
@@ -81,15 +80,6 @@ export default function AuthPage() {
                     required
                   />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="rememberMe"
-                    name="rememberMe"
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  <label htmlFor="rememberMe" className="text-sm text-gray-300">Remember Me</label>
-                </div>
                 <Button
                   type="submit"
                   className="w-full"
@@ -135,20 +125,6 @@ export default function AuthPage() {
                     placeholder="Password"
                     required
                   />
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="terms"
-                      name="terms"
-                      required
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                    <label htmlFor="terms" className="text-sm text-gray-300">
-                      I agree to the <a href="/terms" className="text-teal-400 hover:text-teal-300">Terms of Service</a> and <a href="/privacy" className="text-teal-400 hover:text-teal-300">Privacy Policy</a>
-                    </label>
-                  </div>
                 </div>
                 <Button
                   type="submit"

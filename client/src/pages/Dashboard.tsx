@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription, // Added
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
@@ -257,7 +256,7 @@ const renderFeedback = (feedback: any, styleComparison: any) => {
   );
 };
 
-const Dashboard = () => {
+export default function Dashboard() {
   const { artworks, upload, delete: deleteArtwork, toggleVisibility, updateTitle, isLoading, isUploading, isDeleting, isTogglingVisibility, isUpdatingTitle } = useArtwork();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -318,15 +317,6 @@ const Dashboard = () => {
       return;
     }
 
-    if (image.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "File size must be less than 5MB",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       await upload({ title, goals, image });
       toast({
@@ -356,54 +346,51 @@ const Dashboard = () => {
         </div>
         <div className="ml-8">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Upload className="w-4 h-4" /> Upload New Art
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Upload className="w-4 h-4" /> Upload New Art
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Upload Artwork</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpload} className="space-y-4">
+              <div>
+                <Input
+                  name="title"
+                  placeholder="Artwork Title"
+                  required
+                />
+              </div>
+              <div>
+                <Textarea
+                  name="goals"
+                  placeholder="What are your goals for this piece? (optional)"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Input
+                  type="file"
+                  name="image"
+                  accept="image/*"
+                  required
+                />
+              </div>
+              <Button type="submit" disabled={isUploading} className="w-full">
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  "Upload & Analyze"
+                )}
               </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]" aria-describedby="upload-dialog-description">
-              <DialogHeader>
-                <DialogTitle>Upload Artwork</DialogTitle>
-                <DialogDescription id="upload-dialog-description">
-                  Upload your artwork to receive AI-powered analysis and feedback.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleUpload} className="space-y-4">
-                <div>
-                  <Input
-                    name="title"
-                    placeholder="Artwork Title"
-                    required
-                  />
-                </div>
-                <div>
-                  <Textarea
-                    name="goals"
-                    placeholder="What are your goals for this piece? (optional)"
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <Input
-                    type="file"
-                    name="image"
-                    accept="image/*"
-                    required
-                  />
-                </div>
-                <Button type="submit" disabled={isUploading} className="w-full">
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    "Upload & Analyze"
-                  )}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+            </form>
+          </DialogContent>
+        </Dialog>
         </div>
       </div>
 
@@ -423,10 +410,9 @@ const Dashboard = () => {
               <DialogTrigger asChild>
                 <Button>Upload Artwork</Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]" aria-describedby="upload-dialog-description">
+              <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Upload Artwork</DialogTitle>
-                  <DialogDescription id="upload-dialog-description">Upload your artwork to receive AI-powered analysis and feedback.</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleUpload} className="space-y-4">
                   <div>
@@ -473,52 +459,6 @@ const Dashboard = () => {
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle>{artwork.title}</CardTitle>
                 <div className="flex items-center gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => {
-                          setEditingId(artwork.id);
-                          setEditingTitle(artwork.title);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]" aria-describedby="edit-dialog-description">
-                      <DialogHeader>
-                        <DialogTitle>Edit Title</DialogTitle>
-                        <DialogDescription id="edit-dialog-description">
-                          Update the title of your artwork.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <form onSubmit={async (e) => {
-                        e.preventDefault();
-                        if (editingId) {
-                          await updateTitle({
-                            artworkId: editingId,
-                            title: editingTitle
-                          });
-                          setEditingId(null);
-                          setEditingTitle("");
-                          const dialog = (e.target as HTMLFormElement).closest('dialog');
-                          if (dialog) {
-                            const dialogInstance = dialog as HTMLDialogElement;
-                            dialogInstance.close();
-                          }
-                        }
-                      }} className="space-y-4">
-                        <Input
-                          value={editingTitle}
-                          onChange={(e) => setEditingTitle(e.target.value)}
-                          placeholder="Enter new title"
-                        />
-                        <Button type="submit" className="w-full">Save</Button>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -571,6 +511,47 @@ const Dashboard = () => {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
+                  {/* Added Edit Button */}
+                  <Dialog onOpenChange={(open) => {
+                    if (!open) setEditingId(null);
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          setEditingId(artwork.id);
+                          setEditingTitle(artwork.title);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Edit Title</DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (editingId) {
+                          await updateTitle({
+                            artworkId: editingId,
+                            title: editingTitle
+                          });
+                          setEditingId(null);
+                          (e.target as HTMLFormElement).closest('dialog')?.close();
+                        }
+                      }} className="space-y-4">
+                        <Input
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          placeholder="Enter new title"
+                        />
+                        <Button type="submit" className="w-full">Save</Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </CardHeader>
               <CardContent>
@@ -596,6 +577,4 @@ const Dashboard = () => {
       )}
     </div>
   );
-};
-
-export default Dashboard;
+}
