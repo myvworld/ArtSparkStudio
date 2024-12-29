@@ -20,9 +20,20 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 function requireAdmin(req: any, res: any, next: any) {
-  if (!req.isAuthenticated() || !req.user.isAdmin) {
-    return res.status(403).send("Unauthorized");
+  console.log('Admin check:', {
+    isAuthenticated: req.isAuthenticated(),
+    user: req.user,
+    isAdmin: req.user?.isAdmin
+  });
+
+  if (!req.isAuthenticated()) {
+    return res.status(401).send("Not authenticated");
   }
+
+  if (!req.user.isAdmin) {
+    return res.status(403).send("Not authorized");
+  }
+
   next();
 }
 
@@ -325,6 +336,7 @@ export function registerRoutes(app: Express): Server {
   // Admin routes
   app.get("/api/admin/subscription-plans", requireAdmin, async (req, res) => {
     try {
+      console.log('Fetching subscription plans for admin');
       const plans = await db
         .select()
         .from(subscriptionPlans)
@@ -378,6 +390,7 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
+      console.log('Fetching users for admin');
       const allUsers = await db
         .select({
           id: users.id,
