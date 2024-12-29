@@ -57,7 +57,7 @@ export async function analyzeArtwork(
     const userPrompt = `Analyze this artwork titled "${title}"${goals ? ` with the artist's goals: ${goals}` : ''}. Provide a comprehensive analysis including style, composition, technique, strengths, and areas for improvement. Include specific technical suggestions for improvement.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-4-turbo",
       messages: [
         {
           role: "system",
