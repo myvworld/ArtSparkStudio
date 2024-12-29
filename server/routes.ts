@@ -209,14 +209,33 @@ export function registerRoutes(app: Express): Server {
                 artworkId: feedbackData.artworkId,
                 suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
                 analysis: {
-                  style: feedbackData.analysis.style,
-                  composition: feedbackData.analysis.composition,
-                  technique: feedbackData.analysis.technique,
-                  strengths: feedbackData.analysis.strengths || [],
-                  improvements: feedbackData.analysis.improvements || [],
-                  detailedFeedback: feedbackData.analysis.detailedFeedback || '',
-                  technicalSuggestions: feedbackData.analysis.technicalSuggestions || [],
-                  learningResources: feedbackData.analysis.learningResources || []
+                  style: {
+                    current: String(feedbackData.analysis?.style?.current || "Style analysis unavailable"),
+                    influences: [],
+                    similarArtists: [],
+                    period: null,
+                    movement: null
+                  },
+                  composition: {
+                    structure: String(feedbackData.analysis?.composition?.structure || "Structure analysis unavailable"),
+                    balance: String(feedbackData.analysis?.composition?.balance || "Balance analysis unavailable"),
+                    colorTheory: String(feedbackData.analysis?.composition?.colorTheory || "Color theory analysis unavailable"),
+                    perspective: null,
+                    focusPoints: [],
+                    dynamicElements: []
+                  },
+                  technique: {
+                    medium: String(feedbackData.analysis?.technique?.medium || "Medium analysis unavailable"),
+                    execution: String(feedbackData.analysis?.technique?.execution || "Execution analysis unavailable"), 
+                    skillLevel: String(feedbackData.analysis?.technique?.skillLevel || "Skill level analysis unavailable"),
+                    uniqueApproaches: [],
+                    materialUsage: null
+                  },
+                  strengths: [],
+                  improvements: [],
+                  detailedFeedback: String(feedbackData.analysis?.detailedFeedback || "Detailed feedback unavailable"),
+                  technicalSuggestions: [],
+                  learningResources: []
                 }
               };
 
