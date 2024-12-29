@@ -186,12 +186,18 @@ export async function analyzeArtwork(
       detailedFeedback: analysis.detailedFeedback || "Detailed feedback unavailable",
       technicalSuggestions: analysis.technicalSuggestions || [],
       learningResources: analysis.learningResources || [],
-      suggestions: Array.isArray(analysis?.suggestions) && analysis.suggestions.length > 0
-        ? analysis.suggestions.map(s => String(s)).filter(Boolean)
+      suggestions: (Array.isArray(analysis?.suggestions) 
+        ? analysis.suggestions
+        : (analysis?.suggestions ? [analysis.suggestions] : [])
+      ).map(s => String(s)).filter(Boolean).length > 0 
+        ? (Array.isArray(analysis?.suggestions) 
+          ? analysis.suggestions 
+          : [analysis.suggestions]
+        ).map(s => String(s)).filter(Boolean)
         : ["No specific suggestions available"]
     };
 
-    console.log("Analysis structured successfully");
+    console.log("Analysis structured successfully", structuredAnalysis);
     return structuredAnalysis;
   } catch (error: any) {
     console.error("Artwork analysis failed:", {
