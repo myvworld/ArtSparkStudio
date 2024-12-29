@@ -115,10 +115,6 @@ export const feedback = pgTable("feedback", {
     technicalSuggestions?: string[];
     learningResources?: string[];
   }>().notNull(),
-  suggestions: json("suggestions").$type<{
-    strengths: string[];
-    improvements: string[];
-  }>().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

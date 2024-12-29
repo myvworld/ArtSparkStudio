@@ -249,23 +249,31 @@ export function registerRoutes(app: Express): Server {
   // Handle artwork upload
   app.post("/api/artwork", upload.single('image'), async (req, res) => {
     try {
+      console.log('Starting artwork upload process');
+
       if (!req.isAuthenticated()) {
+        console.log('Authentication check failed');
         return res.status(401).json({ error: "Not authenticated" });
       }
 
       if (!req.file) {
+        console.log('No image file provided in request');
         return res.status(400).json({ error: "No image file provided" });
       }
 
       const { title, goals } = req.body;
       if (!title) {
+        console.log('Title missing in request');
         return res.status(400).json({ error: "Title is required" });
       }
+
+      console.log(`Processing artwork upload: "${title}" by user ${req.user.id}`);
 
       // Convert image to base64
       const imageBase64 = req.file.buffer.toString('base64');
       const imageUrl = `data:${req.file.mimetype};base64,${imageBase64}`;
 
+      // First create the artwork record
       const [artwork] = await db
         .insert(artworks)
         .values({
@@ -277,29 +285,48 @@ export function registerRoutes(app: Express): Server {
         })
         .returning();
 
-      // Analyze the artwork
+      console.log(`Artwork record created with ID: ${artwork.id}`);
+
+      // Then analyze the artwork
       try {
+        console.log('Starting OpenAI analysis');
         const base64Image = imageUrl.split(',')[1];
         const analysis = await analyzeArtwork(base64Image, title, goals);
-        
+
+        console.log('Successfully received OpenAI analysis, storing feedback');
+
         // Store the analysis
-        const [feedback] = await db
+        const [feedbackEntry] = await db
           .insert(feedback)
           .values({
             artworkId: artwork.id,
-            analysis,
+            analysis
           })
           .returning();
 
-        artwork.feedback = [feedback];
-      } catch (error) {
-        console.error('Error analyzing artwork:', error);
-      }
+        // Add the feedback to the response
+        const artworkWithFeedback = {
+          ...artwork,
+          feedback: [feedbackEntry]
+        };
 
-      res.json(artwork);
+        console.log('Successfully stored feedback, sending response');
+        res.json(artworkWithFeedback);
+      } catch (error) {
+        console.error('Error during artwork analysis:', error);
+        // Even if analysis fails, we still return the artwork
+        res.json({
+          ...artwork,
+          feedback: [],
+          analysisError: error instanceof Error ? error.message : 'Failed to analyze artwork'
+        });
+      }
     } catch (error) {
-      console.error('Error uploading artwork:', error);
-      res.status(500).json({ error: "Error uploading artwork" });
+      console.error('Error in artwork upload:', error);
+      res.status(500).json({ 
+        error: "Error uploading artwork",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
@@ -427,7 +454,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-// Add logging to the /api/artwork endpoint
+  // Add logging to the /api/artwork endpoint
   app.get("/api/artwork", async (req, res) => {
     try {
       console.log('Fetching artworks for user:', req.user?.id);
