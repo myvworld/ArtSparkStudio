@@ -21,8 +21,31 @@ const db = drizzle({
 async function testConnection() {
   try {
     console.log("Testing database connection...");
+    
+    // Verify database URL
+    if (!process.env.DATABASE_URL) {
+      throw new Error("DATABASE_URL not configured");
+    }
+
+    // Test basic connectivity
     await db.execute(sql`SELECT 1`);
-    console.log("Database connection initialized and tested successfully");
+    
+    // Verify we can query a table
+    await db.execute(sql`SELECT COUNT(*) FROM users`);
+    
+    // Test write permission with a temporary record
+    await db.transaction(async (tx) => {
+      const [result] = await tx.execute(sql`
+        CREATE TEMPORARY TABLE _connection_test (id SERIAL PRIMARY KEY);
+        DROP TABLE _connection_test;
+      `);
+      return result;
+    });
+
+    console.log("Database connection verified successfully:", {
+      url: process.env.DATABASE_URL.replace(/:[^:@]*@/, ':****@'),
+      status: 'connected'
+    });
   } catch (error) {
     console.error("Database connection error:", {
       message: error instanceof Error ? error.message : String(error),
