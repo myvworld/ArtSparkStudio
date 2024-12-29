@@ -1,0 +1,64 @@
+Drizzle ORM has its own insert/returning syntax that differs from Knex, TypeORM, Prisma, etc. In Drizzle, simply calling `.values({...}).returning()` on its own (without `db.insert(...)`) will not work. You need to start with `db.insert(table)`, chain `.values(...)`, then call `.returning(...)`, and finally end with either `.get()` or `.all()` to actually execute the query.  
+
+Below is a minimal **Drizzle + PostgreSQL** example showing how to insert and return data:
+
+```ts
+// Example table definition
+import { pgTable, text, integer, serial } from 'drizzle-orm/pg-core';
+
+export const feedbackTable = pgTable('feedback', {
+  id: serial('id').primaryKey(),
+  artworkId: text('artwork_id'),
+  suggestions: text('suggestions').array(), // if storing array of text
+  analysis: text('analysis'),
+});
+
+// Example Drizzle insert with returning:
+const insertedRows = await db.insert(feedbackTable)
+  .values({
+    artworkId: feedbackData.artworkId,
+    suggestions: Array.isArray(feedbackData.suggestions)
+      ? feedbackData.suggestions
+      : ['Upload your next artwork to see how your style evolves!'],
+    analysis: feedbackData.analysis,
+  })
+  // Choose which columns you want returned; can be aliases or the entire row
+  .returning({
+    id: feedbackTable.id,
+    artworkId: feedbackTable.artworkId,
+    suggestions: feedbackTable.suggestions,
+    analysis: feedbackTable.analysis,
+  })
+  // .all() for multiple rows, .get() if you expect just one row
+  .all();
+
+console.log(insertedRows);
+```
+
+### Key points for Drizzle + Postgres
+
+1. **Use `db.insert(tableName)`**  
+   That’s how Drizzle knows you want to perform an `INSERT`.
+
+2. **Chain `.values({...})`**  
+   Pass in the object that maps column names to values.
+
+3. **Use `.returning({...})`**  
+   Drizzle lets you specify exactly which columns (or expressions) you want to get back.  
+   - If you just do `.returning()`, Drizzle won’t know which columns to return.  
+   - Pass an object mapping alias → column reference, like `{ id: feedbackTable.id, ... }`.
+
+4. **Finish with `.get()` or `.all()`**  
+   - **`.get()`** executes the query expecting a single row (or returns `undefined` if none).  
+   - **`.all()`** executes the query returning an array of rows.  
+
+If you omit any of these steps—especially `db.insert(...)` at the start or `.get()`/`.all()` at the end—Drizzle won’t actually perform the insert or return data.
+
+---
+
+### Drizzle docs links
+
+- [Drizzle Insert Docs](https://orm.drizzle.team/docs/insert)  
+- [Returning data](https://orm.drizzle.team/docs/select#returning)  
+
+Make sure you’re following the Drizzle-specific patterns (rather than Knex/TypeORM syntax). Once you do, you should be able to insert and return rows without error in PostgreSQL.
