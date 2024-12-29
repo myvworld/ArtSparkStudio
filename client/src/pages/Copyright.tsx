@@ -3,9 +3,9 @@ import React from 'react';
 
 export default function Copyright() {
   return (
-    <div className="container max-w-4xl py-16 px-6 md:px-8">
-      <h1 className="mb-8 text-4xl font-bold text-center">Copyright Policy</h1>
-      <div className="prose prose-invert p-8 rounded-md border bg-background/50 backdrop-blur-sm">
+    <div className="container max-w-4xl mx-auto py-8 sm:py-12 md:py-16 px-4 sm:px-6 md:px-8">
+      <h1 className="mb-6 sm:mb-8 text-3xl sm:text-4xl font-bold text-center">Copyright Policy</h1>
+      <div className="prose prose-invert prose-sm sm:prose-base max-w-none p-4 sm:p-6 md:p-8 rounded-md border bg-background/50 backdrop-blur-sm">
         <p className="text-sm text-muted-foreground">Effective Date: December 28, 2024</p>
         
         <p>ArtSpark ("we," "our," or "us") respects the intellectual property rights of others and expects users of our website, artspark.vlane.art (the "Site"), to do the same. This Copyright Policy outlines our policies for addressing copyright infringement.</p>

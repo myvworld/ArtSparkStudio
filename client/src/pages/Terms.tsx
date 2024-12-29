@@ -3,9 +3,9 @@ import React from 'react';
 
 export default function Terms() {
   return (
-    <div className="container max-w-4xl py-16 px-6 md:px-8">
-      <h1 className="mb-8 text-4xl font-bold text-center">Terms of Use</h1>
-      <div className="prose prose-invert p-8 rounded-md border bg-background/50 backdrop-blur-sm">
+    <div className="container max-w-4xl mx-auto py-8 sm:py-12 md:py-16 px-4 sm:px-6 md:px-8">
+      <h1 className="mb-6 sm:mb-8 text-3xl sm:text-4xl font-bold text-center">Terms of Use</h1>
+      <div className="prose prose-invert prose-sm sm:prose-base max-w-none p-4 sm:p-6 md:p-8 rounded-md border bg-background/50 backdrop-blur-sm">
         <p className="text-sm text-muted-foreground">Effective Date: December 28, 2024</p>
         
         <p>Welcome to ArtSpark ("the Site"). These Terms of Use ("Terms") govern your access to and use of the Site. By accessing or using the Site, you agree to these Terms. If you do not agree, please do not use the Site.</p>
