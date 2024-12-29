@@ -1,118 +1,68 @@
-import { Link } from "wouter";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useUser } from "@/hooks/use-user";
-import { ArrowRight, Brush, Image, Sparkles } from "lucide-react";
+import { Image, Sparkles, Brush } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function Home() {
-  const { user } = useUser();
-
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative py-20 px-4">
-        <div className="max-w-6xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            Elevate Your Art with AI Insights
+      <section className="relative h-[90vh] flex items-center justify-center bg-gradient-to-r from-purple-900 via-violet-800 to-purple-900">
+        <div className="text-center px-4">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 text-white">
+            Transform Your Art with AI
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Get personalized feedback on your artwork using advanced AI technology.
-            Perfect your technique and grow as an artist with ArtSpark.
+          <p className="text-xl md:text-2xl mb-8 text-gray-200 max-w-2xl mx-auto">
+            Elevate your artistic journey with powerful AI analysis and a vibrant community
           </p>
-          <div className="flex gap-4 justify-center">
-            <Link href={user ? "/dashboard" : "/login"}>
-              <Button size="lg" className="gap-2">
-                Get Started <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
+          <Link to="/auth">
+            <Button size="lg" className="text-lg px-8">Get Started</Button>
+          </Link>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 bg-muted/30">
+      <section className="py-20 px-4 bg-gray-900">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
+          <h2 className="text-4xl font-bold text-center mb-12 text-white">Our Features</h2>
           <div className="grid md:grid-cols-3 gap-8">
-            <Card>
+            <Card className="bg-gray-800 border-purple-500">
               <CardContent className="pt-6">
-                <div className="mb-4 p-3 bg-primary/10 rounded-lg w-fit">
-                  <Image className="w-6 h-6 text-primary" />
+                <div className="mb-4 p-3 bg-purple-500/10 rounded-lg w-fit">
+                  <Image className="w-6 h-6 text-purple-500" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Upload Your Art</h3>
-                <p className="text-muted-foreground">
-                  Share your artwork in any common format. Works with digital art,
-                  photographs of traditional media, and more.
+                <h3 className="text-xl font-semibold mb-2 text-white">AI Art Analysis</h3>
+                <p className="text-gray-300">
+                  Get detailed insights about your artwork's composition and style
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gray-800 border-purple-500">
               <CardContent className="pt-6">
-                <div className="mb-4 p-3 bg-primary/10 rounded-lg w-fit">
-                  <Sparkles className="w-6 h-6 text-primary" />
+                <div className="mb-4 p-3 bg-purple-500/10 rounded-lg w-fit">
+                  <Sparkles className="w-6 h-6 text-purple-500" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">AI Analysis</h3>
-                <p className="text-muted-foreground">
-                  Our AI analyzes your art's composition, technique, and style,
-                  providing detailed insights.
+                <h3 className="text-xl font-semibold mb-2 text-white">Community Gallery</h3>
+                <p className="text-gray-300">
+                  Share your work and connect with fellow artists
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gray-800 border-purple-500">
               <CardContent className="pt-6">
-                <div className="mb-4 p-3 bg-primary/10 rounded-lg w-fit">
-                  <Brush className="w-6 h-6 text-primary" />
+                <div className="mb-4 p-3 bg-purple-500/10 rounded-lg w-fit">
+                  <Brush className="w-6 h-6 text-purple-500" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Improve & Grow</h3>
-                <p className="text-muted-foreground">
-                  Get actionable feedback and suggestions to enhance your artistic
-                  skills and technique.
+                <h3 className="text-xl font-semibold mb-2 text-white">Art Tools</h3>
+                <p className="text-gray-300">
+                  Access powerful tools to enhance your creative process
                 </p>
               </CardContent>
             </Card>
           </div>
-        </div>
-      </section>
-
-      {/* Gallery Preview */}
-      <section className="py-20 px-4">
-        <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-12">Inspiring Art Gallery</h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <img
-              src="https://images.unsplash.com/photo-1635151227785-429f420c6b9d"
-              alt="Digital Art Gallery"
-              className="rounded-lg shadow-lg aspect-video object-cover"
-            />
-            <img
-              src="https://images.unsplash.com/photo-1471666875520-c75081f42081"
-              alt="Art Exhibition"
-              className="rounded-lg shadow-lg aspect-video object-cover"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 px-4 bg-primary text-primary-foreground">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-6">
-            Ready to Transform Your Art Journey?
-          </h2>
-          <p className="text-lg mb-8 opacity-90">
-            Join ArtSpark today and get instant feedback on your artwork.
-          </p>
-          <Link href={user ? "/dashboard" : "/login"}>
-            <Button
-              size="lg"
-              variant="secondary"
-              className="gap-2"
-            >
-              Start Creating <ArrowRight className="w-4 h-4" />
-            </Button>
-          </Link>
         </div>
       </section>
     </div>

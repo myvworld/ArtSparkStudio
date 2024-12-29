@@ -10,7 +10,20 @@
 
   /* Body Styling */
   body {
-    @apply font-sans antialiased bg-gray-900 text-gray-100;
+    @apply font-sans antialiased bg-gray-900 text-gray-100 overflow-x-hidden;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-purple-500 rounded-full;
   }
 
   /* Links */
