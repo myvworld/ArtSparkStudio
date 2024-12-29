@@ -245,7 +245,7 @@ export function registerRoutes(app: Express): Server {
               const feedbackToInsert = {
                 artworkId: feedbackData.artworkId,
                 suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
-                analysis: sanitizedAnalysis // Pass the sanitized object directly
+                analysis: JSON.parse(JSON.stringify(sanitizedAnalysis)) // Ensure valid JSON structure
               };
 
               console.log('Inserting feedback:', JSON.stringify(feedbackToInsert, null, 2));
