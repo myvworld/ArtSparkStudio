@@ -88,34 +88,34 @@ export const feedback = pgTable("feedback", {
   artworkId: integer("artwork_id").references(() => artworks.id).notNull(),
   suggestions: text("suggestions").array().notNull().default(['Upload your next artwork to see how your style evolves! The AI will analyze your progress and provide insights on your artistic development.']),
   analysis: json("analysis").$type<{
-    style?: {
+    style: {
       current: string;
-      influences?: string[];
-      similarArtists?: string[];
+      influences: string[];
+      similarArtists: string[];
       period?: string;
       movement?: string;
     };
-    composition?: {
+    composition: {
       structure: string;
       balance: string;
       colorTheory: string;
       perspective?: string;
-      focusPoints?: string[];
-      dynamicElements?: string[];
+      focusPoints: string[];
+      dynamicElements: string[];
     };
-    technique?: {
+    technique: {
       medium: string;
       execution: string;
       skillLevel: string;
-      uniqueApproaches?: string[];
-      materialUsage?: string;
+      uniqueApproaches: string[];
+      materialUsage: string;
     };
-    strengths?: string[];
-    improvements?: string[];
+    strengths: string[];
+    improvements: string[];
     detailedFeedback: string;
-    technicalSuggestions?: string[];
-    learningResources?: string[];
-  }>(),
+    technicalSuggestions: string[];
+    learningResources: string[];
+  }>().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
