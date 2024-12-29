@@ -21,7 +21,7 @@ export async function initializeOpenAI(): Promise<void> {
     // Verify the API key by making a simple API call
     console.log("Verifying OpenAI API key...");
     const testResponse = await client.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4-turbo",
       messages: [{ role: "system", content: "API key verification test" }],
       max_tokens: 5
     });
@@ -86,7 +86,7 @@ export async function analyzeArtwork(
     console.log("Preparing OpenAI vision request");
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-4-turbo",
       messages: [
         {
           role: "system",
