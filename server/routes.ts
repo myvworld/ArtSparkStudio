@@ -242,14 +242,18 @@ export function registerRoutes(app: Express): Server {
               const feedbackToInsert = {
                 artworkId: feedbackData.artworkId,
                 suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
-                analysis: JSON.stringify(sanitizedAnalysis)
+                analysis: sanitizedAnalysis // Pass the object directly, Drizzle will handle JSON serialization
               };
 
               console.log('Inserting feedback:', JSON.stringify(feedbackToInsert, null, 2));
 
               const feedbackEntries = await db
                 .insert(feedback)
-                .values(feedbackToInsert)
+                .values({
+                  artworkId: feedbackToInsert.artworkId,
+                  suggestions: feedbackToInsert.suggestions,
+                  analysis: feedbackToInsert.analysis
+                })
                 .returning({
                   id: feedback.id,
                   artworkId: feedback.artworkId,
