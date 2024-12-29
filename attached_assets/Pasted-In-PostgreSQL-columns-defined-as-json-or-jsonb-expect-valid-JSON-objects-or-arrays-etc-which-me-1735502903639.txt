@@ -1,0 +1,85 @@
+In PostgreSQL, columns defined as json or jsonb expect valid JSON objects (or arrays, etc.)—which means the data must be a valid JSON string internally. Drizzle will handle that serialization if you supply a plain JavaScript object and the column is set up as a JSON/JSONB type. However, if your column is actually defined as a text/varchar column, or if Drizzle is not auto-serializing, you’ll see an “invalid input syntax for type json” error when passing a raw object.
+
+Depending on how your Drizzle schema is defined, you need to ensure you’re passing the data in the correct form.
+
+1. If your column is jsonb('analysis') or json('analysis')
+You can insert a plain JS object directly, and Drizzle should automatically serialize it as JSON under the hood. For example:
+
+ts
+Copy code
+// In db/schema.ts
+export const feedbackTable = pgTable('feedback', {
+  // ...
+  analysis: jsonb('analysis'), // or json('analysis')
+});
+
+// In server/routes.ts (or wherever you insert):
+await db.insert(feedbackTable)
+  .values({
+    artworkId: feedbackData.artworkId,
+    analysis: feedbackData.analysis,  // <-- pass the plain object
+  })
+  .returning(...)
+  .all();
+Note: If you’re still getting a JSON syntax error, it often means there’s something in feedbackData.analysis that isn’t valid JSON (like circular references or non-stringifiable values). You can test by doing:
+
+ts
+Copy code
+JSON.stringify(feedbackData.analysis);
+in your code/logs. If that throws or returns something non-JSON, fix or sanitize that data first.
+
+2. If your column is text('analysis') (or varchar('analysis'))
+Then Postgres is expecting plain text, and Drizzle does not auto-serialize objects for text columns. You need to manually stringify:
+
+ts
+Copy code
+await db.insert(feedbackTable)
+  .values({
+    artworkId: feedbackData.artworkId,
+    // Since it's text, we need to convert the object to string
+    analysis: JSON.stringify(feedbackData.analysis),
+  })
+  .returning(...)
+  .all();
+When you later query that row, you’ll get the analysis back as a JSON string. If you want to handle it as an object in your code, you’ll have to JSON.parse(...) it after reading from the database.
+
+3. Validate analysis is valid JSON
+Regardless of which approach you take (passing an object to a JSON/JSONB column or stringifying for a text column), if analysis contains something that’s not valid JSON—like certain special characters, or an unexpected data structure—Postgres will throw:
+
+invalid input syntax for type json
+
+To confirm, do something like:
+
+ts
+Copy code
+console.log('analysis is:', feedbackData.analysis);
+console.log('analysis as string:', JSON.stringify(feedbackData.analysis));
+If the second line throws an error or returns something odd, you know the data is invalid.
+
+4. The simplest fix
+If you know your column is text (or you prefer storing it as text), stringify the object:
+
+ts
+Copy code
+analysis: JSON.stringify(feedbackData.analysis)
+If you know your column is jsonb or json, then pass a plain object (not stringified) to Drizzle, but make sure the object can be properly converted to JSON (no circular references, etc.). Drizzle should handle the serialization automatically.
+
+TL;DR
+Check how analysis is defined in db/schema.ts.
+If it’s json/jsonb, pass a valid JS object.
+If it’s text, do JSON.stringify(feedbackData.analysis).
+Ensure feedbackData.analysis is valid and can be stringified.
+Drizzle throws “invalid input syntax for type json” if the data it tries to store in a JSON/JSONB column is not valid JSON. Or if you’re storing in text but not passing a string.
+Correcting the mismatch between the schema definition and the inserted data should resolve the “invalid input syntax for type json” error.
+
+
+
+
+
+
+
+
+
+
+
+
