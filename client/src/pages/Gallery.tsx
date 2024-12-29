@@ -266,7 +266,11 @@ export default function Gallery() {
             </div>
             <Separator />
             <div className="space-y-4">
-              {isLoadingComments ? (
+              {!user ? (
+                <div className="text-center py-4">
+                  <p className="text-muted-foreground">Please log in to view and post comments</p>
+                </div>
+              ) : isLoadingComments ? (
                 <div className="flex justify-center py-4">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </div>
