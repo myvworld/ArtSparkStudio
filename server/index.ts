@@ -8,7 +8,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Add detailed request logging
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -55,8 +54,8 @@ process.on('unhandledRejection', (reason, promise) => {
     // Test database connection before starting server
     try {
       console.log('Testing database connection...');
-      await db.execute(sql`SELECT 1 as test`);
-      console.log('Database connection verified');
+      const result = await db.execute<Record<string, number>>(sql`SELECT 1 as test`);
+      console.log('Database connection verified:', result);
     } catch (dbError) {
       console.error('Database connection test failed:', dbError);
       throw dbError;
@@ -64,7 +63,6 @@ process.on('unhandledRejection', (reason, promise) => {
 
     const server = registerRoutes(app);
 
-    // Enhanced error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error('Error in request:', {
         status: err.status || err.statusCode,
@@ -88,13 +86,11 @@ process.on('unhandledRejection', (reason, promise) => {
       serveStatic(app);
     }
 
-    // ALWAYS serve the app on port 5000
     const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
       log(`Server successfully started and listening on port ${PORT}`);
     });
 
-    // Graceful shutdown handling
     const shutdown = () => {
       console.log('Shutting down server...');
       server.close(() => {

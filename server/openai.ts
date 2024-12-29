@@ -1,79 +1,53 @@
 import OpenAI from "openai";
 import type { ArtAnalysis } from "./types";
 
-let openai: OpenAI;
-try {
-  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  console.log("OpenAI client initialized successfully");
-} catch (error) {
-  console.error("Failed to initialize OpenAI client:", error);
+if (!process.env.OPENAI_API_KEY) {
+  console.error("OPENAI_API_KEY environment variable is not set");
   process.exit(1);
 }
+
+const openai = new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY,
+  maxRetries: 3,
+  timeout: 30000
+});
+
+console.log("OpenAI client initialized successfully");
 
 export async function analyzeArtwork(
   imageBase64: string,
   title: string,
   goals?: string
 ): Promise<ArtAnalysis> {
-  console.log(`Starting artwork analysis for "${title}"`);
-
   try {
-    // Validate inputs
+    console.log(`Starting artwork analysis for "${title}"`);
+
     if (!imageBase64) {
-      console.error("No image data provided for analysis");
-      throw new Error("Image data is required");
+      throw new Error("No image data provided for analysis");
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      console.log("OpenAI API key is missing - returning mock analysis");
-      return getMockAnalysis("Service Temporarily Unavailable");
-    }
+    // Clean the base64 string
+    const base64Image = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
 
-    console.log("Preparing OpenAI request with image and prompt");
-    const prompt = `As an expert art critic and educator, analyze this artwork titled "${title}" ${
-      goals ? `with the artist's goals: ${goals}. ` : '. '
-    }Provide a comprehensive analysis in JSON format, including:
-    {
-      "style": {
-        "current": "string",
-        "influences": ["string"],
-        "period": "string",
-        "movement": "string"
-      },
-      "composition": {
-        "structure": "string",
-        "balance": "string",
-        "colorTheory": "string",
-        "focusPoints": ["string"]
-      },
-      "technique": {
-        "medium": "string",
-        "execution": "string",
-        "skillLevel": "string",
-        "uniqueApproaches": ["string"]
-      },
-      "strengths": ["string"],
-      "improvements": ["string"],
-      "detailedFeedback": "string",
-      "learningResources": ["string"]
-    }`;
-
-    console.log("Sending request to OpenAI API");
+    console.log("Preparing OpenAI request");
     const response = await openai.chat.completions.create({
       model: "gpt-4-vision-preview",
       messages: [
         {
           role: "user",
           content: [
-            { type: "text", text: prompt },
+            { 
+              type: "text", 
+              text: `Analyze this artwork titled "${title}"${goals ? ` with the artist's goals: ${goals}` : ''}`
+            },
             {
               type: "image_url",
               image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`,
-              },
-            },
-          ],
-        },
+                url: `data:image/jpeg;base64,${base64Image}`
+              }
+            }
+          ]
+        }
       ],
       max_tokens: 2000,
       temperature: 0.7,
@@ -81,73 +55,44 @@ export async function analyzeArtwork(
     });
 
     if (!response.choices[0]?.message?.content) {
-      console.error("Empty response from OpenAI");
       throw new Error("Empty response from OpenAI");
     }
 
     console.log("Successfully received OpenAI response");
-    const rawResponse = response.choices[0].message.content;
-    console.log("Raw OpenAI response length:", rawResponse.length);
+    const analysis = JSON.parse(response.choices[0].message.content);
 
-    let analysis;
-    try {
-      analysis = JSON.parse(rawResponse);
-      console.log("Successfully parsed OpenAI response");
-    } catch (parseError) {
-      console.error("Failed to parse OpenAI response:", parseError);
-      console.error("Raw response was:", rawResponse);
-      throw new Error("Failed to parse OpenAI response");
-    }
-
-    // Validate the analysis structure
-    if (!analysis.style || !analysis.composition || !analysis.technique) {
-      console.error("Invalid analysis structure:", analysis);
-      throw new Error("Invalid analysis structure from OpenAI");
-    }
-
-    console.log("Returning formatted analysis");
     return {
       style: {
         current: analysis.style?.current || "Style analysis unavailable",
         influences: analysis.style?.influences || [],
-        similarArtists: analysis.style?.similarArtists || [],
         period: analysis.style?.period || "Period unknown",
         movement: analysis.style?.movement || "Movement unknown"
       },
       composition: {
-        structure: analysis.composition?.structure || "Composition analysis unavailable",
+        structure: analysis.composition?.structure || "Structure analysis unavailable",
         balance: analysis.composition?.balance || "Balance analysis unavailable",
         colorTheory: analysis.composition?.colorTheory || "Color theory analysis unavailable",
-        perspective: analysis.composition?.perspective || "Perspective analysis unavailable",
-        focusPoints: analysis.composition?.focusPoints || [],
-        dynamicElements: analysis.composition?.dynamicElements || []
+        focusPoints: analysis.composition?.focusPoints || []
       },
       technique: {
         medium: analysis.technique?.medium || "Medium analysis unavailable",
         execution: analysis.technique?.execution || "Execution analysis unavailable",
         skillLevel: analysis.technique?.skillLevel || "Skill level analysis unavailable",
-        uniqueApproaches: analysis.technique?.uniqueApproaches || [],
-        materialUsage: analysis.technique?.materialUsage || "Material usage analysis unavailable"
+        uniqueApproaches: analysis.technique?.uniqueApproaches || []
       },
       strengths: analysis.strengths || [],
       improvements: analysis.improvements || [],
       detailedFeedback: analysis.detailedFeedback || "Detailed feedback unavailable",
-      technicalSuggestions: analysis.technicalSuggestions || [],
       learningResources: analysis.learningResources || []
     };
-  } catch (error) {
-    const err = error as Error;
+  } catch (error: any) {
     console.error("Artwork analysis failed:", {
-      message: err.message,
-      stack: err.stack
+      error: error.message,
+      stack: error.stack,
+      title,
+      hasGoals: !!goals
     });
-
-    if (err.message.includes("OpenAI API error")) {
-      console.log("OpenAI API error - returning mock analysis");
-      return getMockAnalysis("API Error");
-    }
-
-    return getMockAnalysis("Error Processing");
+    throw new Error(`Failed to analyze artwork: ${error.message}`);
   }
 }
 
