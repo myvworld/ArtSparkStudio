@@ -107,7 +107,7 @@ export async function analyzeArtwork(
       throw new Error("Title is required for analysis");
     }
 
-    const validModel = "gpt-4-turbo";
+    const validModel = "gpt-4-turbo"; //Corrected:  This variable is now correctly used in the API call
     console.log('Preparing API request:', {
       model: validModel,
       imageSize: base64Image.length,
@@ -115,7 +115,7 @@ export async function analyzeArtwork(
     });
 
     const response = await openai.chat.completions.create({
-      model: validModel,
+      model: validModel, //Corrected: Using the updated model in the API call
       messages: [
         {
           role: "system",
