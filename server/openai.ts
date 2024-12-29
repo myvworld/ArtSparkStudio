@@ -187,7 +187,7 @@ export async function analyzeArtwork(
       detailedFeedback: analysis.detailedFeedback || "Detailed feedback unavailable",
       technicalSuggestions: analysis.technicalSuggestions || [],
       learningResources: analysis.learningResources || [],
-      suggestions: analysis.suggestions || ["No specific suggestions available"]
+      suggestions: analysis.suggestions || analysis.improvements || ["No specific suggestions available"]
     };
 
     console.log("Analysis structured successfully");
