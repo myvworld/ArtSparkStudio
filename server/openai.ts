@@ -1,18 +1,28 @@
 import OpenAI from "openai";
 import type { ArtAnalysis } from "./types";
 
-if (!process.env.OPENAI_API_KEY) {
-  console.error("OPENAI_API_KEY environment variable is not set");
-  process.exit(1);
+// Validate API key and initialize OpenAI client with better error handling
+function initializeOpenAI() {
+  if (!process.env.OPENAI_API_KEY) {
+    console.error("OPENAI_API_KEY environment variable is not set");
+    process.exit(1);
+  }
+
+  try {
+    const openai = new OpenAI({ 
+      apiKey: process.env.OPENAI_API_KEY,
+      maxRetries: 3,
+      timeout: 30000
+    });
+    console.log("OpenAI client initialized successfully");
+    return openai;
+  } catch (error) {
+    console.error("Failed to initialize OpenAI client:", error);
+    process.exit(1);
+  }
 }
 
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY,
-  maxRetries: 3,
-  timeout: 30000
-});
-
-console.log("OpenAI client initialized successfully");
+const openai = initializeOpenAI();
 
 export async function analyzeArtwork(
   imageBase64: string,
@@ -31,14 +41,18 @@ export async function analyzeArtwork(
 
     console.log("Preparing OpenAI request");
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-4-turbo",
       messages: [
+        {
+          role: "system",
+          content: "You are an expert art critic and educator. Analyze the artwork and provide detailed feedback in a structured format."
+        },
         {
           role: "user",
           content: [
             { 
               type: "text", 
-              text: `Analyze this artwork titled "${title}"${goals ? ` with the artist's goals: ${goals}` : ''}`
+              text: `Analyze this artwork titled "${title}"${goals ? ` with the artist's goals: ${goals}` : ''}. Provide a comprehensive analysis including style, composition, technique, strengths, and areas for improvement.`
             },
             {
               type: "image_url",
@@ -65,6 +79,7 @@ export async function analyzeArtwork(
       style: {
         current: analysis.style?.current || "Style analysis unavailable",
         influences: analysis.style?.influences || [],
+        similarArtists: analysis.style?.similarArtists || [],
         period: analysis.style?.period || "Period unknown",
         movement: analysis.style?.movement || "Movement unknown"
       },
@@ -72,17 +87,21 @@ export async function analyzeArtwork(
         structure: analysis.composition?.structure || "Structure analysis unavailable",
         balance: analysis.composition?.balance || "Balance analysis unavailable",
         colorTheory: analysis.composition?.colorTheory || "Color theory analysis unavailable",
-        focusPoints: analysis.composition?.focusPoints || []
+        perspective: analysis.composition?.perspective || "Perspective analysis unavailable",
+        focusPoints: analysis.composition?.focusPoints || [],
+        dynamicElements: analysis.composition?.dynamicElements || []
       },
       technique: {
         medium: analysis.technique?.medium || "Medium analysis unavailable",
         execution: analysis.technique?.execution || "Execution analysis unavailable",
         skillLevel: analysis.technique?.skillLevel || "Skill level analysis unavailable",
-        uniqueApproaches: analysis.technique?.uniqueApproaches || []
+        uniqueApproaches: analysis.technique?.uniqueApproaches || [],
+        materialUsage: analysis.technique?.materialUsage || "Material usage analysis unavailable"
       },
       strengths: analysis.strengths || [],
       improvements: analysis.improvements || [],
       detailedFeedback: analysis.detailedFeedback || "Detailed feedback unavailable",
+      technicalSuggestions: analysis.technicalSuggestions || [],
       learningResources: analysis.learningResources || []
     };
   } catch (error: any) {
