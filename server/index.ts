@@ -126,7 +126,7 @@ async function startServer() {
       serveStatic(app);
     }
 
-    const PORT = process.env.PORT || 5000;
+    const PORT = parseInt(process.env.PORT || "3000");
     server.listen(PORT, "0.0.0.0", () => {
       log(`Server successfully started and listening on port ${PORT}`);
     });
