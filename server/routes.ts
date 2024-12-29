@@ -341,14 +341,6 @@ export function registerRoutes(app: Express): Server {
   // Get featured artwork for homepage
   app.get("/api/featured-artwork", async (req, res) => {
     try {
-      const [settings] = await db
-        .select()
-        .from(adminSettings)
-        .where(eq(adminSettings.key, 'featured_artwork_count'))
-        .execute();
-
-      const limit = settings?.value?.count || 5;
-
       const featuredArtworks = await db
         .select({
           id: artworks.id,
@@ -360,7 +352,7 @@ export function registerRoutes(app: Express): Server {
         .innerJoin(users, eq(users.id, artworks.userId))
         .where(eq(artworks.isPublic, true))
         .orderBy(sql`RANDOM()`)
-        .limit(limit)
+        .limit(5)
         .execute();
 
       res.json(featuredArtworks);
