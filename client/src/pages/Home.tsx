@@ -6,35 +6,9 @@ import { Link } from "wouter";
 export default function Home() {
   return (
     <div className="min-h-screen">
-      <section className="relative min-h-screen flex flex-col justify-center bg-gradient-to-r from-purple-900 via-violet-800 to-purple-900 px-4 py-12">
-        <div className="max-w-7xl mx-auto w-full">
-          <div className="relative">
-            <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl p-6 border border-purple-500/20">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4">
-                  <Image className="w-6 h-6 text-purple-400 mb-2" />
-                  <h3 className="font-semibold text-white">AI Analysis</h3>
-                  <p className="text-sm text-gray-300">Get detailed insights about composition and style</p>
-                </div>
-                <div className="p-4">
-                  <Sparkles className="w-6 h-6 text-purple-400 mb-2" />
-                  <h3 className="font-semibold text-white">Community</h3>
-                  <p className="text-sm text-gray-300">Share and connect with fellow artists</p>
-                </div>
-                <div className="p-4">
-                  <Brush className="w-6 h-6 text-purple-400 mb-2" />
-                  <h3 className="font-semibold text-white">Pro Tools</h3>
-                  <p className="text-sm text-gray-300">Access advanced creative tools</p>
-                </div>
-                <div className="p-4">
-                  <div className="w-6 h-6 text-purple-400 mb-2">✨</div>
-                  <h3 className="font-semibold text-white">Analytics</h3>
-                  <p className="text-sm text-gray-300">Track your artistic growth</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="text-center mt-12"> {/* Added mt-12 for spacing */}
+      <section className="relative h-[50vh] flex items-center bg-gradient-to-r from-purple-900 via-violet-800 to-purple-900 px-4">
+        <div className="max-w-4xl mx-auto w-full text-center">
+          <div className="space-y-6">
             <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white">
               Transform Your Art with AI
             </h1>
@@ -45,8 +19,9 @@ export default function Home() {
               <Button size="lg" className="text-lg px-8 mb-16">Get Started</Button>
             </Link>
           </div>
-          
-          <div className="max-w-6xl mx-auto">
+        </div>
+      </section>
+      <div className="max-w-6xl mx-auto">
             <h2 className="text-4xl font-bold text-center mb-12 text-white">Our Features</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               <Card className="bg-gray-800/80 border-purple-500 backdrop-blur-sm">
@@ -86,8 +61,6 @@ export default function Home() {
               </Card>
             </div>
           </div>
-        </div>
-      </section>
     </div>
   );
 }
