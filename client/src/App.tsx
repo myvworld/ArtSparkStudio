@@ -100,6 +100,7 @@ function App() {
           <Route path="/settings" component={Settings} />
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/terms" component={Terms} />
+          <Route path="/privacy" component={Privacy} />
           <Route path="/copyright" component={Copyright} />
           <Route>
             <Home />
