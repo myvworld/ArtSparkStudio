@@ -105,15 +105,15 @@ function App() {
               <div className="flex gap-2">
                 <Button
                   variant="ghost"
-                  onClick={() => setLocation("/")}
+                  asChild
                 >
-                  Login
+                  <a href="/auth">Login</a>
                 </Button>
                 <Button
                   variant="default"
-                  onClick={() => setLocation("/")}
+                  asChild
                 >
-                  Register
+                  <a href="/auth">Register</a>
                 </Button>
               </div>
             )}
@@ -124,6 +124,7 @@ function App() {
       <main>
         <Switch>
           <Route path="/" component={Home} />
+          <Route path="/auth" component={AuthPage} />
           <Route path="/dashboard">
             <ProtectedRoute>
               <Dashboard />
