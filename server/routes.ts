@@ -341,15 +341,7 @@ export function registerRoutes(app: Express): Server {
   // Get featured artwork for homepage
   app.get("/api/featured-artwork", async (req, res) => {
     try {
-      const [settings] = await db
-        .select()
-        .from(adminSettings)
-        .where(eq(adminSettings.key, 'featured_artwork_count'))
-        .execute();
-
-      const limit = settings?.value?.count || 5;
-
-      const featuredArtworks = await db
+      const featuredArtwork = await db
         .select({
           id: artworks.id,
           title: artworks.title,
@@ -360,31 +352,13 @@ export function registerRoutes(app: Express): Server {
         .innerJoin(users, eq(users.id, artworks.userId))
         .where(eq(artworks.isPublic, true))
         .orderBy(sql`RANDOM()`)
-        .limit(limit)
+        .limit(1)
         .execute();
 
-      res.json(featuredArtworks);
+      res.json(featuredArtwork[0]);
     } catch (error) {
       console.error("Error fetching featured artwork:", error);
       res.status(500).json({ error: "Failed to fetch featured artwork" });
-    }
-  });
-
-  app.post("/api/admin/settings", requireAdmin, async (req, res) => {
-    try {
-      const { key, value } = req.body;
-      const [setting] = await db
-        .insert(adminSettings)
-        .values({ key, value })
-        .onConflictDoUpdate({
-          target: adminSettings.key,
-          set: { value, updatedAt: new Date() }
-        })
-        .returning();
-      res.json(setting);
-    } catch (error) {
-      console.error("Error updating settings:", error);
-      res.status(500).json({ error: "Failed to update settings" });
     }
   });
 
