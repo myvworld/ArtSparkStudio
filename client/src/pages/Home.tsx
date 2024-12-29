@@ -54,26 +54,7 @@ export default function Home() {
               </p>
             )}
           </div>
-          <div className="space-y-8">
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 text-white bg-clip-text text-transparent bg-gradient-to-br from-purple-100 via-white to-purple-200">
-              Unleash Your Creativity with AI
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 text-gray-200 max-w-2xl mx-auto leading-relaxed">
-              Take your artistic vision to the next level with cutting-edge AI insights and connect with a thriving community of creators
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Link href="/auth">
-                <Button size="lg" className="text-lg px-8 py-6 bg-white text-purple-900 hover:bg-gray-100 hover:scale-105 transition-all">
-                  Get Started
-                </Button>
-              </Link>
-              <Link href="/gallery">
-                <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2 hover:bg-white/10 hover:scale-105 transition-all">
-                  View Gallery
-                </Button>
-              </Link>
-            </div>
-          </div>
+          
         </div>
       </section>
 
