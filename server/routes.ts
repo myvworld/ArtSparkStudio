@@ -411,6 +411,12 @@ export function registerRoutes(app: Express): Server {
               error: error instanceof Error ? error.message : String(error),
               stack: error instanceof Error ? error.stack : undefined,
               analysisKeys: Object.keys(analysis || {}),
+              rawAnalysis: analysis,
+              feedbackDataShape: {
+                analysis: typeof feedbackData.analysis,
+                analysisContent: JSON.stringify(feedbackData.analysis, null, 2),
+                sanitizedContent: JSON.stringify(sanitizedAnalysis, null, 2)
+              }
             });
             // Even if analysis processing fails, we still return the artwork
             res.json({
