@@ -239,10 +239,13 @@ export function registerRoutes(app: Express): Server {
               // Log the sanitized data for debugging
               console.log('Sanitized analysis data:', JSON.stringify(sanitizedAnalysis, null, 2));
 
+              // Parse and stringify to ensure valid JSON
+              const analysisJson = JSON.parse(JSON.stringify(sanitizedAnalysis));
+              
               const feedbackToInsert = {
                 artworkId: feedbackData.artworkId,
                 suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
-                analysis: sanitizedAnalysis // Pass the object directly, Drizzle will handle JSON serialization
+                analysis: analysisJson
               };
 
               console.log('Inserting feedback:', JSON.stringify(feedbackToInsert, null, 2));
@@ -252,7 +255,7 @@ export function registerRoutes(app: Express): Server {
                 .values({
                   artworkId: feedbackToInsert.artworkId,
                   suggestions: feedbackToInsert.suggestions,
-                  analysis: feedbackToInsert.analysis
+                  analysis: analysisJson
                 })
                 .returning({
                   id: feedback.id,
