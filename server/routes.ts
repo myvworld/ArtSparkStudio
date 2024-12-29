@@ -136,41 +136,41 @@ export function registerRoutes(app: Express): Server {
           });
 
           try {
-            // Ensure the analysis object matches the schema structure
-            const feedbackData: NewFeedback = {
-              artworkId: artwork.id,
-              analysis: {
-                style: {
-                  current: analysis.style?.current || "Unknown style",
-                  influences: Array.isArray(analysis.style?.influences) ? analysis.style.influences : [],
-                  similarArtists: Array.isArray(analysis.style?.similarArtists) ? analysis.style.similarArtists : [],
-                  period: analysis.style?.period || null,
-                  movement: analysis.style?.movement || null
-                },
-                composition: {
-                  structure: analysis.composition?.structure || "Not analyzed",
-                  balance: analysis.composition?.balance || "Not analyzed",
-                  colorTheory: analysis.composition?.colorTheory || "Not analyzed",
-                  perspective: analysis.composition?.perspective || null,
-                  focusPoints: Array.isArray(analysis.composition?.focusPoints) ? analysis.composition.focusPoints : [],
-                  dynamicElements: Array.isArray(analysis.composition?.dynamicElements) ? analysis.composition.dynamicElements : []
-                },
-                technique: {
-                  medium: analysis.technique?.medium || "Not specified",
-                  execution: analysis.technique?.execution || "Not analyzed",
-                  skillLevel: analysis.technique?.skillLevel || "Not analyzed",
-                  uniqueApproaches: Array.isArray(analysis.technique?.uniqueApproaches) ? analysis.technique.uniqueApproaches : [],
-                  materialUsage: analysis.technique?.materialUsage || null
-                },
-                strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
-                improvements: Array.isArray(analysis.improvements) ? analysis.improvements : [],
-                detailedFeedback: analysis.detailedFeedback || "No detailed feedback available",
-                technicalSuggestions: Array.isArray(analysis.technicalSuggestions) ? analysis.technicalSuggestions : [],
-                learningResources: Array.isArray(analysis.learningResources) ? analysis.learningResources : []
-              },
-              suggestions: Array.isArray(analysis?.suggestions) && analysis.suggestions.length > 0
-                ? analysis.suggestions
-                : ['Upload your next artwork to see how your style evolves! The AI will analyze your progress and provide insights on your artistic development.']
+              // Ensure the analysis object matches the schema structure
+              const feedbackData: NewFeedback = {
+                artworkId: artwork.id,
+                analysis: JSON.stringify({
+                  style: {
+                    current: analysis.style?.current || "Unknown style",
+                    influences: Array.isArray(analysis.style?.influences) ? analysis.style.influences : [],
+                    similarArtists: Array.isArray(analysis.style?.similarArtists) ? analysis.style.similarArtists : [],
+                    period: analysis.style?.period || null,
+                    movement: analysis.style?.movement || null
+                  },
+                  composition: {
+                    structure: analysis.composition?.structure || "Not analyzed",
+                    balance: analysis.composition?.balance || "Not analyzed",
+                    colorTheory: analysis.composition?.colorTheory || "Not analyzed",
+                    perspective: analysis.composition?.perspective || null,
+                    focusPoints: Array.isArray(analysis.composition?.focusPoints) ? analysis.composition.focusPoints : [],
+                    dynamicElements: Array.isArray(analysis.composition?.dynamicElements) ? analysis.composition.dynamicElements : []
+                  },
+                  technique: {
+                    medium: analysis.technique?.medium || "Not specified",
+                    execution: analysis.technique?.execution || "Not analyzed",
+                    skillLevel: analysis.technique?.skillLevel || "Not analyzed",
+                    uniqueApproaches: Array.isArray(analysis.technique?.uniqueApproaches) ? analysis.technique.uniqueApproaches : [],
+                    materialUsage: analysis.technique?.materialUsage || null
+                  },
+                  strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
+                  improvements: Array.isArray(analysis.improvements) ? analysis.improvements : [],
+                  detailedFeedback: analysis.detailedFeedback || "No detailed feedback available",
+                  technicalSuggestions: Array.isArray(analysis.technicalSuggestions) ? analysis.technicalSuggestions : [],
+                  learningResources: Array.isArray(analysis.learningResources) ? analysis.learningResources : []
+                }),
+                suggestions: Array.isArray(analysis?.suggestions) && analysis.suggestions.length > 0
+                  ? analysis.suggestions
+                  : ['Upload your next artwork to see how your style evolves! The AI will analyze your progress and provide insights on your artistic development.']
             };
 
             console.log('Structured feedback data before insertion:', {
