@@ -142,30 +142,30 @@ export function registerRoutes(app: Express): Server {
                   analysis: {
                     style: {
                       current: analysis.style?.toString() || "Unknown style",
-                      influences: [],
-                      similarArtists: [],
-                      period: null,
-                      movement: null
+                      influences: analysis.influences || [],
+                      similarArtists: analysis.similarArtists || [],
+                      period: analysis.period || null,
+                      movement: analysis.movement || null
                     },
                     composition: {
                       structure: analysis.composition?.toString() || "Not analyzed",
-                      balance: "Not analyzed",
-                      colorTheory: "Not analyzed",
-                      perspective: null,
-                      focusPoints: [],
-                      dynamicElements: []
+                      balance: analysis.balance || "Not analyzed",
+                      colorTheory: analysis.colorTheory || "Not analyzed", 
+                      perspective: analysis.perspective || null,
+                      focusPoints: analysis.focusPoints || [],
+                      dynamicElements: analysis.dynamicElements || []
                     },
                     technique: {
                       medium: analysis.technique?.toString() || "Not specified",
-                      execution: "Not analyzed",
-                      skillLevel: "Not analyzed",
-                      uniqueApproaches: [],
-                      materialUsage: null
+                      execution: analysis.execution || "Not analyzed",
+                      skillLevel: analysis.skillLevel || "Not analyzed",
+                      uniqueApproaches: analysis.uniqueApproaches || [],
+                      materialUsage: analysis.materialUsage || null
                     },
                     strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
                     improvements: Array.isArray(analysis.improvements) ? analysis.improvements : [],
                     detailedFeedback: analysis.detailedFeedback?.toString() || "No detailed feedback available",
-                    technicalSuggestions: [],
+                    technicalSuggestions: analysis.technicalSuggestions || [],
                     learningResources: []
                   },
                   suggestions: Array.isArray(analysis?.suggestions) ? analysis.suggestions
