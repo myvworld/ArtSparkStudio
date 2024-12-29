@@ -37,6 +37,8 @@ interface Comment {
   userId: number;
 }
 
+import { useUser } from "@/hooks/use-user";
+
 export default function Gallery() {
   const { user } = useUser();
   const { toast } = useToast();
