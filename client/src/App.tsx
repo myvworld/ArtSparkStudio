@@ -35,7 +35,7 @@ function App() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
-        <nav className="container flex items-center justify-between h-16">
+        <nav className="container flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-6">
             <Button
               variant={location === "/" ? "default" : "ghost"}
