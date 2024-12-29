@@ -87,7 +87,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="container py-12 max-w-2xl">
+    <div className="dashboard-container max-w-2xl">
       <Card>
         <CardHeader>
           <CardTitle>Account Settings</CardTitle>
