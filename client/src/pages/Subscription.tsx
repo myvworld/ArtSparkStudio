@@ -115,11 +115,34 @@ export default function Subscription() {
   }
 
   const handleSubscribe = async (tier: string, priceId: string | null) => {
-    // For test version, just show a message
-    toast({
-      title: "Test Mode",
-      description: "This is a test version. Payment integration coming soon!",
-    });
+    if (!priceId) {
+      return;
+    }
+
+    setLoadingTier(tier);
+    try {
+      const response = await fetch("/api/subscription/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priceId }),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to start checkout",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingTier(null);
+    }
   };
 
   return (
@@ -129,9 +152,11 @@ export default function Subscription() {
         <p className="text-muted-foreground max-w-2xl mx-auto">
           Unlock the full potential of your artistic journey with our AI-powered feedback and analysis tools.
         </p>
-        <div className="mt-4 text-sm text-yellow-600 bg-yellow-50 p-2 rounded inline-block">
-          🚧 Preview Version - Payment Integration Coming Soon 🚧
-        </div>
+        {config?.mode === 'test' && (
+          <div className="mt-4 text-sm text-yellow-600 bg-yellow-50 p-2 rounded inline-block">
+            🔬 Test Mode - No real charges will be made
+          </div>
+        )}
       </div>
 
       {/* Subscription Plans */}
@@ -172,13 +197,18 @@ export default function Subscription() {
               <Button
                 className="w-full"
                 variant={key === "basic" ? "default" : "outline"}
-                disabled={user?.subscriptionTier === key}
+                disabled={user?.subscriptionTier === key || loadingTier === key}
                 onClick={() => handleSubscribe(key, tier.priceId)}
               >
-                {user?.subscriptionTier === key ? (
+                {loadingTier === key ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : user?.subscriptionTier === key ? (
                   "Current Plan"
                 ) : (
-                  "Preview Plan"
+                  config?.mode === 'test' ? "Try Plan (Test Mode)" : "Subscribe"
                 )}
               </Button>
             </CardContent>
