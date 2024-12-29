@@ -160,7 +160,7 @@ export default function Gallery() {
         <div>
           <h1 className="text-3xl font-bold">Community Gallery</h1>
           <p className="text-muted-foreground mt-2">
-            Explore and engage with artwork from the ArtSpark community
+            Share your creations with the vibrant ArtSpark community and showcase your talent to a wider audience. Submitted images have the chance to be featured on the landing page, giving your artwork the spotlight it deserves.
           </p>
         </div>
       </div>
