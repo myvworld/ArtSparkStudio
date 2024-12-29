@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Image, Sparkles, Brush } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -16,7 +17,6 @@ export default function Home() {
       return response.json();
     },
   });
-  return (
 
   useEffect(() => {
     if (!data?.length) return;
@@ -75,7 +75,6 @@ export default function Home() {
               )}
             </div>
           </div>
-          
         </div>
       </section>
 
