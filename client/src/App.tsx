@@ -14,8 +14,8 @@ import Analytics from "./pages/Analytics";
 import Subscription from "./pages/Subscription";
 import Settings from "./pages/Settings";
 import AdminDashboard from "./pages/AdminDashboard";
-import Terms from "./pages/Terms";
-import Copyright from "./pages/Copyright";
+const Terms = () => import("./pages/Terms").then(module => module.default);
+const Copyright = () => import("./pages/Copyright").then(module => module.default);
 import { Button } from "./components/ui/button";
 import { useLocation } from "wouter";
 
