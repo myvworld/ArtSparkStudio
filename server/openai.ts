@@ -55,13 +55,9 @@ export async function initializeOpenAI(): Promise<void> {
 
 // Helper function to validate base64 string
 function isValidBase64(str: string): boolean {
-  if (!str) return false;
   try {
-    // Check if string matches base64 pattern
-    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(str)) return false;
     return btoa(atob(str)) === str;
   } catch (err) {
-    console.error('Base64 validation error:', err);
     return false;
   }
 }
@@ -107,15 +103,15 @@ export async function analyzeArtwork(
       throw new Error("Title is required for analysis");
     }
 
-    const model = "gpt-4-turbo";
+    const validModel = "gpt-4-turbo";
     console.log('Preparing API request:', {
-      model,
+      model: validModel,
       imageSize: base64Image.length,
       hasGoals: !!goals
     });
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo", // Using the specified model
+      model: validModel,
       messages: [
         {
           role: "system",
@@ -148,6 +144,11 @@ export async function analyzeArtwork(
       throw new Error("Invalid response format from OpenAI API");
     }
 
+    if (!response.choices[0]?.message?.content) {
+      console.log("Empty response from OpenAI");
+      throw new Error("Empty response from OpenAI");
+    }
+
     console.log("Successfully received OpenAI response");
     let analysis;
     try {
@@ -158,6 +159,11 @@ export async function analyzeArtwork(
     }
 
     // Ensure the response matches our interface structure
+    // Ensure suggestions exist before creating analysis
+    if (!analysis.suggestions || !Array.isArray(analysis.suggestions)) {
+      analysis.suggestions = ["No specific suggestions available"];
+    }
+    
     const structuredAnalysis: ArtAnalysis = {
       style: {
         current: analysis.style?.current || "Style analysis unavailable",
@@ -186,18 +192,10 @@ export async function analyzeArtwork(
       detailedFeedback: analysis.detailedFeedback || "Detailed feedback unavailable",
       technicalSuggestions: analysis.technicalSuggestions || [],
       learningResources: analysis.learningResources || [],
-      suggestions: (Array.isArray(analysis?.suggestions) 
-        ? analysis.suggestions
-        : (analysis?.suggestions ? [analysis.suggestions] : [])
-      ).map(s => String(s)).filter(Boolean).length > 0 
-        ? (Array.isArray(analysis?.suggestions) 
-          ? analysis.suggestions 
-          : [analysis.suggestions]
-        ).map(s => String(s)).filter(Boolean)
-        : ["No specific suggestions available"]
+      suggestions: analysis.suggestions || ["No specific suggestions available"]
     };
 
-    console.log("Analysis structured successfully", structuredAnalysis);
+    console.log("Analysis structured successfully");
     return structuredAnalysis;
   } catch (error: any) {
     console.error("Artwork analysis failed:", {
