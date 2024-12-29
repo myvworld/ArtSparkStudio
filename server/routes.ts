@@ -179,12 +179,16 @@ export function registerRoutes(app: Express): Server {
               suggestionsCount: feedbackData.suggestions.length
             });
 
-            const [feedbackEntry] = await db
-              .insert(feedback)
-              .values(feedbackData)
-              .returning();
 
-            console.log('Feedback stored successfully:', {
+              const [feedbackEntry] = await db
+                .insert(feedback)
+                .values({
+                  ...feedbackData,
+                  analysis: JSON.stringify(feedbackData.analysis)
+                })
+                .returning();
+
+              console.log('Feedback stored successfully:', {
               feedbackId: feedbackEntry.id,
               artworkId: artwork.id,
               hasAnalysis: !!feedbackEntry.analysis
