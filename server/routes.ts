@@ -205,39 +205,53 @@ export function registerRoutes(app: Express): Server {
                 hasRequiredFields: feedbackData.analysis?.style && feedbackData.analysis?.composition && feedbackData.analysis?.technique
               });
 
+              // Validate and sanitize the feedback data
+              const sanitizedAnalysis = {
+                style: {
+                  current: String(feedbackData.analysis?.style?.current || "Style analysis unavailable"),
+                  influences: Array.isArray(feedbackData.analysis?.style?.influences) ? feedbackData.analysis.style.influences : [],
+                  similarArtists: Array.isArray(feedbackData.analysis?.style?.similarArtists) ? feedbackData.analysis.style.similarArtists : [],
+                  period: feedbackData.analysis?.style?.period || null,
+                  movement: feedbackData.analysis?.style?.movement || null
+                },
+                composition: {
+                  structure: String(feedbackData.analysis?.composition?.structure || "Structure analysis unavailable"),
+                  balance: String(feedbackData.analysis?.composition?.balance || "Balance analysis unavailable"),
+                  colorTheory: String(feedbackData.analysis?.composition?.colorTheory || "Color theory analysis unavailable"),
+                  perspective: feedbackData.analysis?.composition?.perspective || null,
+                  focusPoints: Array.isArray(feedbackData.analysis?.composition?.focusPoints) ? feedbackData.analysis.composition.focusPoints : [],
+                  dynamicElements: Array.isArray(feedbackData.analysis?.composition?.dynamicElements) ? feedbackData.analysis.composition.dynamicElements : []
+                },
+                technique: {
+                  medium: String(feedbackData.analysis?.technique?.medium || "Medium analysis unavailable"),
+                  execution: String(feedbackData.analysis?.technique?.execution || "Execution analysis unavailable"),
+                  skillLevel: String(feedbackData.analysis?.technique?.skillLevel || "Skill level analysis unavailable"),
+                  uniqueApproaches: Array.isArray(feedbackData.analysis?.technique?.uniqueApproaches) ? feedbackData.analysis.technique.uniqueApproaches : [],
+                  materialUsage: feedbackData.analysis?.technique?.materialUsage || null
+                },
+                strengths: Array.isArray(feedbackData.analysis?.strengths) ? feedbackData.analysis.strengths : [],
+                improvements: Array.isArray(feedbackData.analysis?.improvements) ? feedbackData.analysis.improvements : [],
+                detailedFeedback: String(feedbackData.analysis?.detailedFeedback || "Detailed feedback unavailable"),
+                technicalSuggestions: Array.isArray(feedbackData.analysis?.technicalSuggestions) ? feedbackData.analysis.technicalSuggestions : [],
+                learningResources: Array.isArray(feedbackData.analysis?.learningResources) ? feedbackData.analysis.learningResources : []
+              };
+
+              // Log the sanitized data for debugging
+              console.log('Sanitized analysis data:', JSON.stringify(sanitizedAnalysis, null, 2));
+
               const feedbackToInsert = {
                 artworkId: feedbackData.artworkId,
                 suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
-                analysis: {
-                  style: {
-                    current: String(feedbackData.analysis?.style?.current || "Style analysis unavailable"),
-                    influences: [],
-                    similarArtists: [],
-                    period: null,
-                    movement: null
-                  },
-                  composition: {
-                    structure: String(feedbackData.analysis?.composition?.structure || "Structure analysis unavailable"),
-                    balance: String(feedbackData.analysis?.composition?.balance || "Balance analysis unavailable"),
-                    colorTheory: String(feedbackData.analysis?.composition?.colorTheory || "Color theory analysis unavailable"),
-                    perspective: null,
-                    focusPoints: [],
-                    dynamicElements: []
-                  },
-                  technique: {
-                    medium: String(feedbackData.analysis?.technique?.medium || "Medium analysis unavailable"),
-                    execution: String(feedbackData.analysis?.technique?.execution || "Execution analysis unavailable"), 
-                    skillLevel: String(feedbackData.analysis?.technique?.skillLevel || "Skill level analysis unavailable"),
-                    uniqueApproaches: [],
-                    materialUsage: null
-                  },
-                  strengths: [],
-                  improvements: [],
-                  detailedFeedback: String(feedbackData.analysis?.detailedFeedback || "Detailed feedback unavailable"),
-                  technicalSuggestions: [],
-                  learningResources: []
-                }
+                analysis: sanitizedAnalysis
               };
+
+              // Validate the final object
+              try {
+                JSON.stringify(feedbackToInsert.analysis);
+              } catch (error) {
+                console.error('Invalid JSON structure:', error);
+                throw new Error('Invalid analysis data structure');
+              }
 
               const feedbackEntries = await db
                 .insert(feedback)
