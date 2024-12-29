@@ -186,8 +186,8 @@ export async function analyzeArtwork(
       detailedFeedback: analysis.detailedFeedback || "Detailed feedback unavailable",
       technicalSuggestions: analysis.technicalSuggestions || [],
       learningResources: analysis.learningResources || [],
-      suggestions: Array.isArray(analysis.suggestions) && analysis.suggestions.length > 0 
-        ? analysis.suggestions 
+      suggestions: (analysis.suggestions && Array.isArray(analysis.suggestions) && analysis.suggestions.length > 0)
+        ? analysis.suggestions
         : ["No specific suggestions available"]
     };
 
