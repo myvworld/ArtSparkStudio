@@ -1,32 +1,58 @@
 import OpenAI from "openai";
 import type { ArtAnalysis } from "./types";
 
+let openai: OpenAI | null = null;
+
 // Validate API key and initialize OpenAI client with better error handling
-function initializeOpenAI() {
+export async function initializeOpenAI(): Promise<void> {
   if (!process.env.OPENAI_API_KEY) {
     console.error("OPENAI_API_KEY environment variable is not set");
     throw new Error("OpenAI API key not configured");
   }
 
   try {
-    return new OpenAI({ 
+    console.log("Creating OpenAI client...");
+    const client = new OpenAI({ 
       apiKey: process.env.OPENAI_API_KEY,
       maxRetries: 3,
       timeout: 30000
     });
-  } catch (error) {
-    console.error("Failed to initialize OpenAI client:", error);
+
+    // Verify the API key by making a simple API call
+    console.log("Verifying OpenAI API key...");
+    const testResponse = await client.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "system", content: "API key verification test" }],
+      max_tokens: 5
+    });
+
+    if (!testResponse) {
+      throw new Error("Failed to get response from OpenAI");
+    }
+
+    openai = client;
+    console.log("OpenAI client initialized and API key verified successfully");
+  } catch (error: any) {
+    console.error("Failed to initialize OpenAI client:", {
+      error: error.message,
+      status: error.response?.status,
+      stack: error.stack
+    });
+
+    if (error.response?.status === 401) {
+      throw new Error("Invalid OpenAI API key");
+    }
     throw error;
   }
 }
 
-let openai: OpenAI;
-try {
-  openai = initializeOpenAI();
-  console.log("OpenAI client initialized successfully");
-} catch (error) {
-  console.error("Failed to initialize OpenAI:", error);
-  throw error;
+// Helper function to validate base64 string
+function isValidBase64(str: string): boolean {
+  try {
+    return btoa(atob(str)) === str;
+  } catch (err) {
+    return false;
+  }
 }
 
 export async function analyzeArtwork(
@@ -35,6 +61,11 @@ export async function analyzeArtwork(
   goals?: string
 ): Promise<ArtAnalysis> {
   try {
+    if (!openai) {
+      console.error("OpenAI client not initialized");
+      throw new Error("OpenAI service not available");
+    }
+
     console.log(`Starting artwork analysis for "${title}"`);
     console.log('Analysis parameters:', {
       hasTitle: !!title,
@@ -55,7 +86,7 @@ export async function analyzeArtwork(
     console.log("Preparing OpenAI vision request");
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-vision",
+      model: "gpt-4-vision-preview",
       messages: [
         {
           role: "system",
@@ -83,7 +114,7 @@ export async function analyzeArtwork(
     });
 
     if (!response.choices[0]?.message?.content) {
-      console.error("Empty response from OpenAI");
+      console.log("Empty response from OpenAI");
       throw new Error("Empty response from OpenAI");
     }
 
@@ -138,14 +169,5 @@ export async function analyzeArtwork(
       hasGoals: !!goals
     });
     throw error;
-  }
-}
-
-// Helper function to validate base64 string
-function isValidBase64(str: string): boolean {
-  try {
-    return btoa(atob(str)) === str;
-  } catch (err) {
-    return false;
   }
 }

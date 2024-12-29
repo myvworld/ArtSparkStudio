@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { db } from "@db";
 import { sql } from "drizzle-orm";
+import { initializeOpenAI } from "./openai";
 
 const app = express();
 app.use(express.json());
@@ -54,7 +55,7 @@ process.on('unhandledRejection', (reason, promise) => {
   }
 });
 
-(async () => {
+async function startServer() {
   try {
     console.log('Starting server initialization...');
 
@@ -85,6 +86,19 @@ process.on('unhandledRejection', (reason, promise) => {
         stack: dbError instanceof Error ? dbError.stack : undefined
       });
       throw new Error('Failed to connect to database');
+    }
+
+    // Initialize OpenAI client
+    try {
+      console.log('Initializing OpenAI client...');
+      await initializeOpenAI();
+      console.log('OpenAI client initialized successfully');
+    } catch (openaiError) {
+      console.error('OpenAI initialization failed:', {
+        error: openaiError instanceof Error ? openaiError.message : openaiError,
+        stack: openaiError instanceof Error ? openaiError.stack : undefined
+      });
+      throw new Error('Failed to initialize OpenAI client');
     }
 
     // Initialize routes and server
@@ -147,4 +161,6 @@ process.on('unhandledRejection', (reason, promise) => {
     });
     process.exit(1);
   }
-})();
+}
+
+startServer();
