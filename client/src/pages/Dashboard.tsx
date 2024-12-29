@@ -268,6 +268,7 @@ const Dashboard = () => {
 
   const handleDelete = async (artworkId: number) => {
     try {
+      setDeletingId(artworkId);
       await deleteArtwork(artworkId);
       toast({
         title: "Success",
@@ -279,6 +280,8 @@ const Dashboard = () => {
         description: error.message || "Failed to delete artwork",
         variant: "destructive",
       });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -560,10 +563,7 @@ const Dashboard = () => {
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => {
-                            setDeletingId(artwork.id);
-                            handleDelete(artwork.id);
-                          }}
+                          onClick={() => handleDelete(artwork.id)}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                           Delete
