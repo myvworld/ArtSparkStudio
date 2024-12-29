@@ -270,6 +270,15 @@ export default function Gallery() {
                 </div>
               ) : (
                 <>
+                  <div className="bg-purple-950/30 rounded-lg p-4 mb-6 border border-purple-800/30">
+                    <h4 className="font-semibold mb-2">Foster a Positive Community</h4>
+                    <p className="text-sm text-muted-foreground">
+                      At ArtSpark, we believe in uplifting and supporting one another. When commenting on artwork in the Community Gallery, remember to be kind, constructive, and encouraging. Your thoughtful feedback can inspire fellow artists and help nurture a welcoming environment for creativity to thrive.
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Let's celebrate each other's journeys and grow together as a community of creators!
+                    </p>
+                  </div>
                   <div className="space-y-4">
                     {comments.map((comment) => (
                       <div key={comment.id} className="space-y-1">
