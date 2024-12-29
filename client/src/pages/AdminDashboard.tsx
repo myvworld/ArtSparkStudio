@@ -101,7 +101,7 @@ export default function AdminDashboard() {
 
   if (!user?.isAdmin) {
     return (
-      <div className="container py-12">
+      <div className="dashboard-container">
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="container py-12">
+    <div className="dashboard-container">
       <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
 
       <Tabs defaultValue="plans">
