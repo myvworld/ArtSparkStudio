@@ -459,6 +459,46 @@ export default function Dashboard() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle>{artwork.title}</CardTitle>
                 <div className="flex items-center gap-2">
+                  <Dialog onOpenChange={(open) => {
+                    if (!open) setEditingId(null);
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          setEditingId(artwork.id);
+                          setEditingTitle(artwork.title);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Edit Title</DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (editingId) {
+                          await updateTitle({
+                            artworkId: editingId,
+                            title: editingTitle
+                          });
+                          setEditingId(null);
+                          (e.target as HTMLFormElement).closest('dialog')?.close();
+                        }
+                      }} className="space-y-4">
+                        <Input
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          placeholder="Enter new title"
+                        />
+                        <Button type="submit" className="w-full">Save</Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -511,47 +551,6 @@ export default function Dashboard() {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                  {/* Added Edit Button */}
-                  <Dialog onOpenChange={(open) => {
-                    if (!open) setEditingId(null);
-                  }}>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => {
-                          setEditingId(artwork.id);
-                          setEditingTitle(artwork.title);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Edit Title</DialogTitle>
-                      </DialogHeader>
-                      <form onSubmit={async (e) => {
-                        e.preventDefault();
-                        if (editingId) {
-                          await updateTitle({
-                            artworkId: editingId,
-                            title: editingTitle
-                          });
-                          setEditingId(null);
-                          (e.target as HTMLFormElement).closest('dialog')?.close();
-                        }
-                      }} className="space-y-4">
-                        <Input
-                          value={editingTitle}
-                          onChange={(e) => setEditingTitle(e.target.value)}
-                          placeholder="Enter new title"
-                        />
-                        <Button type="submit" className="w-full">Save</Button>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
                 </div>
               </CardHeader>
               <CardContent>
