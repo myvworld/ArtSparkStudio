@@ -3,9 +3,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Terms() {
   return (
-    <div className="container max-w-4xl py-16">
-      <h1 className="mb-8 text-4xl font-bold">Terms of Use</h1>
-      <ScrollArea className="h-[70vh] rounded-md border p-6">
+    <div className="container max-w-4xl py-16 px-6 md:px-8">
+      <h1 className="mb-8 text-4xl font-bold text-center">Terms of Use</h1>
+      <ScrollArea className="h-[70vh] rounded-md border p-8 bg-background/50 backdrop-blur-sm">
         <div className="prose prose-invert">
           <p className="text-sm text-muted-foreground">Effective Date: December 28, 2024</p>
           

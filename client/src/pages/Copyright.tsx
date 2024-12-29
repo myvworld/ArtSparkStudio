@@ -1,9 +1,9 @@
 
 export default function Copyright() {
   return (
-    <div className="container max-w-3xl py-16">
-      <h1 className="mb-8 text-4xl font-bold">Copyright Notice</h1>
-      <div className="prose prose-invert">
+    <div className="container max-w-3xl py-16 px-6 md:px-8">
+      <h1 className="mb-8 text-4xl font-bold text-center">Copyright Notice</h1>
+      <div className="prose prose-invert p-8 rounded-md border bg-background/50 backdrop-blur-sm">
         <p>© {new Date().getFullYear()} Vworld New Media. All rights reserved.</p>
         
         <h2>Copyright Protection</h2>
