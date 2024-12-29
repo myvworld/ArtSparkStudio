@@ -279,7 +279,7 @@ export default function Gallery() {
                             <p className="text-xs text-muted-foreground">
                               {new Date(comment.createdAt).toLocaleDateString()}
                             </p>
-                            {user?.isAdmin && (
+                            {useUser().user?.isAdmin && (
                               <Button
                                 variant="ghost"
                                 size="icon"
