@@ -54,7 +54,7 @@ export async function analyzeArtwork(
     });
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-4-turbo",
       messages: [
         {
           role: "system",
