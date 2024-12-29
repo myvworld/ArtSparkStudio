@@ -53,122 +53,122 @@ export function registerRoutes(app: Express): Server {
     next();
   });
 
-  // Handle artwork upload with improved error handling
-  app.post("/api/artwork", upload.single('image'), async (req, res) => {
+  // Add enhanced error handling and logging for artwork analysis
+app.post("/api/artwork", upload.single('image'), async (req, res) => {
+  try {
+    console.log('Starting artwork upload process');
+
+    if (!req.isAuthenticated()) {
+      console.log('Authentication check failed');
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    if (!req.file) {
+      console.log('No image file provided in request');
+      return res.status(400).json({ error: "No image file provided" });
+    }
+
+    const { title, goals } = req.body;
+    if (!title) {
+      console.log('Title missing in request');
+      return res.status(400).json({ error: "Title is required" });
+    }
+
+    console.log(`Processing artwork upload: "${title}" by user ${req.user.id}`);
+
+    // Convert image to base64
+    const imageBase64 = req.file.buffer.toString('base64');
+    console.log('Image converted to base64', {
+      size: req.file.size,
+      mimeType: req.file.mimetype,
+      base64Length: imageBase64.length
+    });
+
+    const imageUrl = `data:${req.file.mimetype};base64,${imageBase64}`;
+
+    // First create the artwork record
+    const [artwork] = await db
+      .insert(artworks)
+      .values({
+        userId: req.user.id,
+        title,
+        goals: goals || null,
+        imageUrl,
+        isPublic: false,
+      })
+      .returning();
+
+    console.log(`Artwork record created with ID: ${artwork.id}`);
+
+    // Then analyze the artwork
     try {
-      console.log('Starting artwork upload process');
-
-      if (!req.isAuthenticated()) {
-        console.log('Authentication check failed');
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      if (!req.file) {
-        console.log('No image file provided in request');
-        return res.status(400).json({ error: "No image file provided" });
-      }
-
-      const { title, goals } = req.body;
-      if (!title) {
-        console.log('Title missing in request');
-        return res.status(400).json({ error: "Title is required" });
-      }
-
-      console.log(`Processing artwork upload: "${title}" by user ${req.user.id}`);
-
-      // Convert image to base64
-      const imageBase64 = req.file.buffer.toString('base64');
-      console.log('Image converted to base64', {
-        size: req.file.size,
-        mimeType: req.file.mimetype,
-        base64Length: imageBase64.length
+      console.log('Starting OpenAI analysis with parameters:', {
+        title,
+        hasGoals: !!goals,
+        imageSize: imageBase64.length
       });
 
-      const imageUrl = `data:${req.file.mimetype};base64,${imageBase64}`;
+      const analysis = await analyzeArtwork(imageBase64, title, goals);
 
-      // First create the artwork record
-      const [artwork] = await db
-        .insert(artworks)
-        .values({
-          userId: req.user.id,
-          title,
-          goals: goals || null,
-          imageUrl,
-          isPublic: false,
-        })
-        .returning();
+      console.log('OpenAI analysis completed successfully:', {
+        artworkId: artwork.id,
+        hasAnalysis: !!analysis
+      });
 
-      console.log(`Artwork record created with ID: ${artwork.id}`);
+      // Store the analysis
+      if (analysis) {
+        const [feedbackEntry] = await db
+          .insert(feedback)
+          .values({
+            artworkId: artwork.id,
+            analysis: analysis as any
+          })
+          .returning();
 
-      // Then analyze the artwork
-      try {
-        console.log('Starting OpenAI analysis with parameters:', {
-          title,
-          hasGoals: !!goals,
-          imageSize: imageBase64.length
-        });
-
-        const analysis = await analyzeArtwork(imageBase64, title, goals);
-
-        console.log('OpenAI analysis completed successfully:', {
-          artworkId: artwork.id,
-          hasAnalysis: !!analysis
-        });
-
-        // Store the analysis
-        if (analysis) {
-          const [feedbackEntry] = await db
-            .insert(feedback)
-            .values({
-              artworkId: artwork.id,
-              analysis: analysis as any
-            })
-            .returning();
-
-          console.log('Feedback stored successfully:', {
-            feedbackId: feedbackEntry.id,
-            artworkId: artwork.id
-          });
-
-          // Add the feedback to the response
-          const artworkWithFeedback = {
-            ...artwork,
-            feedback: [feedbackEntry]
-          };
-
-          console.log('Successfully completed artwork upload and analysis');
-          res.json(artworkWithFeedback);
-        } else {
-          throw new Error("Analysis failed - no result returned");
-        }
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error('Unknown error');
-        console.error('Error during artwork analysis:', {
-          message: err.message,
-          stack: err.stack,
+        console.log('Feedback stored successfully:', {
+          feedbackId: feedbackEntry.id,
           artworkId: artwork.id
         });
-        // Even if analysis fails, we still return the artwork
-        res.json({
+
+        // Add the feedback to the response
+        const artworkWithFeedback = {
           ...artwork,
-          feedback: [],
-          analysisError: err.message
-        });
+          feedback: [feedbackEntry]
+        };
+
+        console.log('Successfully completed artwork upload and analysis');
+        res.json(artworkWithFeedback);
+      } else {
+        throw new Error("Analysis failed - no result returned");
       }
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Unknown error');
-      console.error('Error in artwork upload:', {
+      console.error('Error during artwork analysis:', {
         message: err.message,
         stack: err.stack,
-        userId: req.user?.id,
-        hasFile: !!req.file
+        artworkId: artwork.id
       });
-      res.status(500).json({ 
-        error: "Error uploading artwork",
-        details: err.message
+      // Even if analysis fails, we still return the artwork
+      res.json({
+        ...artwork,
+        feedback: [],
+        analysisError: err.message
       });
     }
-  });
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error('Unknown error');
+    console.error('Error in artwork upload:', {
+      message: err.message,
+      stack: err.stack,
+      userId: req.user?.id,
+      hasFile: !!req.file
+    });
+    res.status(500).json({ 
+      error: "Error uploading artwork",
+      details: err.message
+    });
+  }
+});
 
   // Add user's rating to gallery response
   app.get("/api/gallery", async (req, res) => {

@@ -47,14 +47,14 @@ export async function analyzeArtwork(
       throw new Error("Invalid image data format");
     }
 
-    console.log("Preparing OpenAI request for image analysis", {
-      title,
+    console.log("Preparing OpenAI request with parameters:", {
+      hasTitle: !!title,
       hasGoals: !!goals,
       imageSize: base64Image.length
     });
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: "gpt-4-vision-preview",
       messages: [
         {
           role: "system",
@@ -88,7 +88,8 @@ export async function analyzeArtwork(
     console.log("Successfully received OpenAI response");
     const analysis = JSON.parse(response.choices[0].message.content);
 
-    return {
+    // Ensure the response matches our interface structure
+    const structuredAnalysis: ArtAnalysis = {
       style: {
         current: analysis.style?.current || "Style analysis unavailable",
         influences: analysis.style?.influences || [],
@@ -118,6 +119,8 @@ export async function analyzeArtwork(
       learningResources: analysis.learningResources || [],
       suggestions: analysis.technicalSuggestions || ["No specific suggestions available"]
     };
+
+    return structuredAnalysis;
   } catch (error: any) {
     console.error("Artwork analysis failed:", {
       error: error.message,
@@ -126,41 +129,8 @@ export async function analyzeArtwork(
       hasGoals: !!goals
     });
 
-    return getMockAnalysis("Analysis Failed - Service Error");
+    throw error;
   }
-}
-
-function getMockAnalysis(status: string): ArtAnalysis {
-  return {
-    style: {
-      current: status,
-      influences: ["Service Error"],
-      similarArtists: [],
-      period: status,
-      movement: status
-    },
-    composition: {
-      structure: status,
-      balance: status,
-      colorTheory: status,
-      perspective: status,
-      focusPoints: [],
-      dynamicElements: []
-    },
-    technique: {
-      medium: status,
-      execution: status,
-      skillLevel: status,
-      uniqueApproaches: [],
-      materialUsage: status
-    },
-    strengths: [],
-    improvements: [],
-    detailedFeedback: "We encountered an error while analyzing your artwork. Please try again later.",
-    technicalSuggestions: ["Service temporarily unavailable"],
-    learningResources: [],
-    suggestions: ["Service temporarily unavailable"]
-  };
 }
 
 // Helper function to validate base64 string
