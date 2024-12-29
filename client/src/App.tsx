@@ -32,9 +32,12 @@ function App() {
     );
   }
 
-  if (!user) {
-    return <AuthPage />;
-  }
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    if (!user) {
+      return <AuthPage />;
+    }
+    return <>{children}</>;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,12 +125,36 @@ function App() {
       <main>
         <Switch>
           <Route path="/" component={Home} />
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/gallery" component={Gallery} />
-          <Route path="/analytics" component={Analytics} />
-          <Route path="/subscription" component={Subscription} />
-          <Route path="/settings" component={Settings} />
-          <Route path="/admin" component={AdminDashboard} />
+          <Route path="/dashboard">
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/gallery">
+            <ProtectedRoute>
+              <Gallery />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/analytics">
+            <ProtectedRoute>
+              <Analytics />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/subscription">
+            <ProtectedRoute>
+              <Subscription />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/settings">
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/admin">
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          </Route>
           <Route path="/terms" component={Terms} />
           <Route path="/privacy" component={Privacy} />
           <Route path="/copyright" component={Copyright} />
