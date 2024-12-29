@@ -185,9 +185,15 @@ export function registerRoutes(app: Express): Server {
                 .values({
                   artworkId: feedbackData.artworkId,
                   suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
-                  analysis: JSON.stringify(feedbackData.analysis)
+                  analysis: feedbackData.analysis
                 })
                 .returning();
+
+              console.log('Feedback inserted successfully:', {
+                feedbackId: feedbackEntry.id,
+                artworkId: feedbackData.artworkId,
+                hasAnalysis: !!feedbackEntry.analysis
+              });
 
               console.log('Feedback stored successfully:', {
               feedbackId: feedbackEntry.id,
