@@ -242,16 +242,10 @@ export function registerRoutes(app: Express): Server {
               const feedbackToInsert = {
                 artworkId: feedbackData.artworkId,
                 suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
-                analysis: sanitizedAnalysis
+                analysis: JSON.stringify(sanitizedAnalysis)
               };
 
-              // Validate the final object
-              try {
-                JSON.stringify(feedbackToInsert.analysis);
-              } catch (error) {
-                console.error('Invalid JSON structure:', error);
-                throw new Error('Invalid analysis data structure');
-              }
+              console.log('Inserting feedback:', JSON.stringify(feedbackToInsert, null, 2));
 
               const feedbackEntries = await db
                 .insert(feedback)
