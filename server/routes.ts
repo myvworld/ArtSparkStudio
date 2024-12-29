@@ -338,7 +338,31 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Add logging to the /api/artwork endpoint
+  // Get featured artwork for homepage
+  app.get("/api/featured-artwork", async (req, res) => {
+    try {
+      const featuredArtwork = await db
+        .select({
+          id: artworks.id,
+          title: artworks.title,
+          imageUrl: artworks.imageUrl,
+          username: users.username,
+        })
+        .from(artworks)
+        .innerJoin(users, eq(users.id, artworks.userId))
+        .where(eq(artworks.isPublic, true))
+        .orderBy(sql`RANDOM()`)
+        .limit(1)
+        .execute();
+
+      res.json(featuredArtwork[0]);
+    } catch (error) {
+      console.error("Error fetching featured artwork:", error);
+      res.status(500).json({ error: "Failed to fetch featured artwork" });
+    }
+  });
+
+// Add logging to the /api/artwork endpoint
   app.get("/api/artwork", async (req, res) => {
     try {
       console.log('Fetching artworks for user:', req.user?.id);

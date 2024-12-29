@@ -3,13 +3,57 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Image, Sparkles, Brush } from "lucide-react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Home() {
+  const { data: featuredArtwork } = useQuery({
+    queryKey: ["featuredArtwork"],
+    queryFn: async () => {
+      const response = await fetch("/api/featured-artwork");
+      if (!response.ok) throw new Error("Failed to fetch featured artwork");
+      return response.json();
+    },
+  });
   return (
     <div className="min-h-screen">
       <section className="relative h-[80vh] flex items-center bg-gradient-to-br from-purple-900 via-violet-800 to-purple-900 px-4 overflow-hidden">
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-        <div className="relative max-w-5xl mx-auto w-full text-center">
+        <div className="relative max-w-6xl mx-auto w-full grid md:grid-cols-2 gap-8 items-center">
+          <div className="text-left">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 text-white bg-clip-text text-transparent bg-gradient-to-br from-purple-100 via-white to-purple-200">
+              Unleash Your Creativity with AI
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 text-gray-200 max-w-2xl leading-relaxed">
+              Take your artistic vision to the next level with cutting-edge AI insights and connect with a thriving community of creators
+            </p>
+            <div className="flex gap-4">
+              <Link href="/auth">
+                <Button size="lg" className="text-lg px-8 py-6 bg-white text-purple-900 hover:bg-gray-100 hover:scale-105 transition-all">
+                  Get Started
+                </Button>
+              </Link>
+              <Link href="/gallery">
+                <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2 hover:bg-white/10 hover:scale-105 transition-all">
+                  View Gallery
+                </Button>
+              </Link>
+            </div>
+          </div>
+          <div className="relative group hidden md:block">
+            <div className="absolute inset-0 bg-gradient-to-t from-purple-900/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-8">
+              <p className="text-white text-lg font-medium">Get insights on pieces like this</p>
+            </div>
+            <img 
+              src={featuredArtwork?.imageUrl || '/placeholder-art.jpg'} 
+              alt={featuredArtwork?.title || "Featured Artwork"} 
+              className="w-full h-[500px] object-cover rounded-lg shadow-2xl"
+            />
+            {featuredArtwork && (
+              <p className="text-sm text-gray-300 mt-2 text-center">
+                Artwork by {featuredArtwork.username}
+              </p>
+            )}
+          </div>
           <div className="space-y-8">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 text-white bg-clip-text text-transparent bg-gradient-to-br from-purple-100 via-white to-purple-200">
               Unleash Your Creativity with AI
