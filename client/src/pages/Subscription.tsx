@@ -122,7 +122,7 @@ export default function Subscription() {
   };
 
   return (
-    <div className="container py-12 max-w-7xl">
+    <div className="container mx-auto py-12 max-w-7xl px-4">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-4">Choose Your Creative Journey</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -134,7 +134,7 @@ export default function Subscription() {
       </div>
 
       {/* Subscription Plans */}
-      <div className="grid md:grid-cols-3 gap-8 mb-16">
+      <div className="grid md:grid-cols-3 gap-8 mb-16 mx-auto max-w-6xl">
         {Object.entries(SUBSCRIPTION_TIERS).map(([key, tier]) => (
           <Card
             key={key}

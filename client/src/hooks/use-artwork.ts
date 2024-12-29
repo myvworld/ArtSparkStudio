@@ -128,14 +128,45 @@ export function useArtwork() {
     },
   });
 
+  const updateTitleMutation = useMutation({
+    mutationFn: async ({ artworkId, title }: { artworkId: number; title: string }) => {
+      try {
+        const response = await fetch(`/api/artwork/${artworkId}/title`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({ title })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error("Error updating artwork title:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["artworks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
+    },
+  });
+
   return {
     artworks,
     isLoading,
     upload: uploadMutation.mutateAsync,
     delete: deleteMutation.mutateAsync,
     toggleVisibility: toggleVisibilityMutation.mutateAsync,
+    updateTitle: updateTitleMutation.mutateAsync,
     isUploading: uploadMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isTogglingVisibility: toggleVisibilityMutation.isPending,
+    isUpdatingTitle: updateTitleMutation.isPending,
   };
 }

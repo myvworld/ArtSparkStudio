@@ -58,7 +58,19 @@
   }
 
   .section-spacing {
-    @apply py-16 px-4 md:px-8;
+    @apply py-16 px-8 md:px-12 lg:px-16;
+  }
+
+  .container-padding {
+    @apply px-8 md:px-16 lg:px-24;
+  }
+
+  .page-container {
+    @apply max-w-7xl mx-auto px-8 md:px-16 lg:px-24;
+  }
+
+  .dashboard-container {
+    @apply container max-w-7xl mx-auto px-8 md:px-16 lg:px-24 py-8;
   }
 
   /* Button enhancements */

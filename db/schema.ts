@@ -87,14 +87,14 @@ export const feedback = pgTable("feedback", {
   id: serial("id").primaryKey(),
   artworkId: integer("artwork_id").references(() => artworks.id).notNull(),
   analysis: json("analysis").$type<{
-    style: {
+    style?: {
       current: string;
       influences?: string[];
       similarArtists?: string[];
       period?: string;
       movement?: string;
     };
-    composition: {
+    composition?: {
       structure: string;
       balance: string;
       colorTheory: string;
@@ -102,23 +102,19 @@ export const feedback = pgTable("feedback", {
       focusPoints?: string[];
       dynamicElements?: string[];
     };
-    technique: {
+    technique?: {
       medium: string;
       execution: string;
       skillLevel: string;
       uniqueApproaches?: string[];
       materialUsage?: string;
     };
-    strengths: string[];
-    improvements: string[];
+    strengths?: string[];
+    improvements?: string[];
     detailedFeedback: string;
     technicalSuggestions?: string[];
     learningResources?: string[];
-  }>().notNull(),
-  suggestions: json("suggestions").$type<{
-    strengths: string[];
-    improvements: string[];
-  }>().notNull(),
+  }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -227,6 +223,12 @@ export const subscriptionPlanRelations = relations(subscriptionPlans, ({ many })
   users: many(users),
 }));
 
+export const adminSettings = pgTable("admin_settings", {
+  id: serial("id").primaryKey(),
+  key: varchar("key", { length: 100 }).unique().notNull(),
+  value: json("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
