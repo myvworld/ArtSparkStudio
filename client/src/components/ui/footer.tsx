@@ -19,6 +19,9 @@ export function Footer() {
           <Link href="/copyright" className="text-sm text-muted-foreground hover:text-foreground">
             Copyright
           </Link>
+          <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground">
+            Privacy Policy
+          </Link>
         </div>
       </div>
     </footer>
