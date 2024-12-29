@@ -11,7 +11,8 @@ import {
   ratings,
   feedback,
   styleComparisons,
-  subscriptionPlans
+  subscriptionPlans,
+  adminSettings
 } from "@db/schema";
 import { createStripeCheckoutSession, handleStripeWebhook, SUBSCRIPTION_PRICES } from "./stripe";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -54,18 +55,34 @@ export function registerRoutes(app: Express): Server {
 
   // Add Stripe configuration endpoint with enhanced logging
   app.get("/api/subscription/config", (req, res) => {
-    console.log('Fetching Stripe config:', {
-      basicPriceId: SUBSCRIPTION_PRICES.basic,
-      proPriceId: SUBSCRIPTION_PRICES.pro,
-      mode: process.env.NODE_ENV === 'production' ? 'live' : 'test'
-    });
+    try {
+      console.log('Fetching Stripe config');
 
-    // Only expose what the client needs
-    res.json({
-      basicPriceId: SUBSCRIPTION_PRICES.basic,
-      proPriceId: SUBSCRIPTION_PRICES.pro,
-      mode: process.env.NODE_ENV === 'production' ? 'live' : 'test'
-    });
+      // In test mode or if Stripe keys are not configured, return mock data
+      if (!process.env.STRIPE_SECRET_KEY || process.env.NODE_ENV !== 'production') {
+        console.log('Running in test mode - returning mock subscription data');
+        return res.json({
+          basicPriceId: 'mock_basic_price',
+          proPriceId: 'mock_pro_price',
+          mode: 'test'
+        });
+      }
+
+      // Only expose necessary config data to the client
+      res.json({
+        basicPriceId: SUBSCRIPTION_PRICES.basic,
+        proPriceId: SUBSCRIPTION_PRICES.pro,
+        mode: 'live'
+      });
+    } catch (error) {
+      console.error('Error fetching Stripe config:', error);
+      // Fallback to test mode on error
+      res.json({
+        basicPriceId: 'mock_basic_price',
+        proPriceId: 'mock_pro_price',
+        mode: 'test'
+      });
+    }
   });
 
   // Add user's rating to gallery response
