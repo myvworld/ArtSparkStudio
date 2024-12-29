@@ -106,15 +106,15 @@ function App() {
               <div className="flex gap-2">
                 <Button
                   variant="ghost"
-                  onClick={() => navigate("/")}
+                  asChild
                 >
-                  Login
+                  <a href="/">Login</a>
                 </Button>
                 <Button
                   variant="default"
-                  onClick={() => navigate("/")}
+                  asChild
                 >
-                  Register
+                  <a href="/">Register</a>
                 </Button>
               </div>
             )}
