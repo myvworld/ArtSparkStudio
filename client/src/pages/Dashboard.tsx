@@ -338,13 +338,14 @@ export default function Dashboard() {
   return (
     <div className="dashboard-container">
       <div className="flex justify-between items-center mb-8">
-        <div>
+        <div className="space-y-4">
           <h1 className="text-3xl font-bold">Your Creative Space</h1>
           <p className="text-muted-foreground mt-2">
             Easily upload your artwork to receive insightful AI-powered feedback. Track your progress and artistic growth by managing multiple pieces in one place. Stay inspired as you refine your skills over time.
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <div className="ml-8">
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Upload className="w-4 h-4" /> Upload New Art
@@ -390,6 +391,7 @@ export default function Dashboard() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {isLoading ? (
