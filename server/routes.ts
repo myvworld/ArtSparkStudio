@@ -245,18 +245,14 @@ export function registerRoutes(app: Express): Server {
               const feedbackToInsert = {
                 artworkId: feedbackData.artworkId,
                 suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
-                analysis: analysisJson
+                analysis: sanitizedAnalysis // Pass the sanitized object directly
               };
 
               console.log('Inserting feedback:', JSON.stringify(feedbackToInsert, null, 2));
 
               const feedbackEntries = await db
                 .insert(feedback)
-                .values({
-                  artworkId: feedbackToInsert.artworkId,
-                  suggestions: feedbackToInsert.suggestions,
-                  analysis: analysisJson
-                })
+                .values(feedbackToInsert)
                 .returning({
                   id: feedback.id,
                   artworkId: feedback.artworkId,
