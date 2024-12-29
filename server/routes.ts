@@ -243,22 +243,17 @@ export function registerRoutes(app: Express): Server {
               const analysisJson = JSON.parse(JSON.stringify(sanitizedAnalysis));
               
               const feedbackToInsert = {
-                artworkId: feedbackData.artworkId,
-                suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
-                analysis: JSON.parse(JSON.stringify(sanitizedAnalysis)) // Ensure valid JSON structure
+                artworkId: artwork.id,
+                suggestions: ['Upload your next artwork to see how your style evolves!'],
+                analysis: sanitizedAnalysis
               };
 
               console.log('Inserting feedback:', JSON.stringify(feedbackToInsert, null, 2));
 
-              const feedbackEntries = await db
+              const [feedbackEntry] = await db
                 .insert(feedback)
                 .values(feedbackToInsert)
-                .returning({
-                  id: feedback.id,
-                  artworkId: feedback.artworkId,
-                  analysis: feedback.analysis,
-                  suggestions: feedback.suggestions
-                });
+                .returning();
               
               const feedbackEntry = feedbackEntries[0];
 
