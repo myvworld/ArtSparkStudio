@@ -317,6 +317,15 @@ export default function Dashboard() {
       return;
     }
 
+    if (image.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "File size must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await upload({ title, goals, image });
       toast({
