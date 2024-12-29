@@ -179,13 +179,15 @@ export function registerRoutes(app: Express): Server {
             });
 
 
+              const feedbackToInsert = {
+                artworkId: feedbackData.artworkId,
+                suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
+                analysis: feedbackData.analysis
+              };
+
               const [feedbackEntry] = await db
                 .insert(feedback)
-                .values({
-                  artworkId: feedbackData.artworkId,
-                  suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : ['Upload your next artwork to see how your style evolves!'],
-                  analysis: JSON.stringify(feedbackData.analysis)
-                })
+                .values(feedbackToInsert)
                 .returning();
 
             console.log('Feedback stored successfully:', {
