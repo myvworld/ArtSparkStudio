@@ -1,3 +1,4 @@
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Artwork, Feedback } from "@db/schema";
 
@@ -21,38 +22,51 @@ export function useArtwork() {
   const { data: artworks, isLoading } = useQuery<ArtworkWithFeedback[]>({
     queryKey: ["artworks"],
     queryFn: async () => {
-      const response = await fetch("/api/artwork", {
-        credentials: "include",
-      });
+      try {
+        const response = await fetch("/api/artwork", {
+          credentials: "include",
+          headers: {
+            "Accept": "application/json"
+          }
+        });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error("Error fetching artworks:", error);
+        throw error;
       }
-
-      const data = await response.json();
-      console.log('Fetched artworks data:', data); // Debug log
-      return data;
     },
   });
 
   const uploadMutation = useMutation({
     mutationFn: async (data: UploadArtworkData) => {
-      const formData = new FormData();
-      formData.append("title", data.title);
-      if (data.goals) formData.append("goals", data.goals);
-      formData.append("image", data.image);
+      try {
+        const formData = new FormData();
+        formData.append("title", data.title);
+        if (data.goals) formData.append("goals", data.goals);
+        formData.append("image", data.image);
 
-      const response = await fetch("/api/artwork", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
+        const response = await fetch("/api/artwork", {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || `HTTP error! status: ${response.status}`);
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error("Error uploading artwork:", error);
+        throw error;
       }
-
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["artworks"] });
@@ -61,16 +75,24 @@ export function useArtwork() {
 
   const deleteMutation = useMutation({
     mutationFn: async (artworkId: number) => {
-      const response = await fetch(`/api/artwork/${artworkId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+      try {
+        const response = await fetch(`/api/artwork/${artworkId}`, {
+          method: "DELETE",
+          credentials: "include",
+          headers: {
+            "Accept": "application/json"
+          }
+        });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error("Error deleting artwork:", error);
+        throw error;
       }
-
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["artworks"] });
@@ -79,18 +101,26 @@ export function useArtwork() {
 
   const toggleVisibilityMutation = useMutation({
     mutationFn: async ({ artworkId, isPublic }: { artworkId: number; isPublic: boolean }) => {
-      const response = await fetch(`/api/artwork/${artworkId}/visibility`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isPublic: !isPublic })
-      });
+      try {
+        const response = await fetch(`/api/artwork/${artworkId}/visibility`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({ isPublic: !isPublic })
+        });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error("Error toggling visibility:", error);
+        throw error;
       }
-
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["artworks"] });
