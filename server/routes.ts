@@ -131,7 +131,16 @@ app.post("/api/artwork", upload.single('image'), async (req, res) => {
           .insert(feedback)
           .values({
             artworkId: artwork.id,
-            analysis: analysis, // Pass the raw analysis object
+            analysis: {
+              style: analysis.style || {},
+              composition: analysis.composition || {},
+              technique: analysis.technique || {},
+              strengths: analysis.strengths || [],
+              improvements: analysis.improvements || [],
+              detailedFeedback: analysis.detailedFeedback || "",
+              technicalSuggestions: analysis.technicalSuggestions || [],
+              learningResources: analysis.learningResources || []
+            },
             suggestions: Array.isArray(analysis?.suggestions) && analysis.suggestions.length > 0
               ? analysis.suggestions
               : ['Upload your next artwork to see how your style evolves! The AI will analyze your progress and provide insights on your artistic development.']
