@@ -38,6 +38,7 @@ interface Comment {
 }
 
 export default function Gallery() {
+  const { user } = useUser();
   const { toast } = useToast();
   const [selectedArtwork, setSelectedArtwork] = useState<GalleryArtwork | null>(null);
   const [comment, setComment] = useState("");
@@ -289,7 +290,7 @@ export default function Gallery() {
                             <p className="text-xs text-muted-foreground">
                               {new Date(comment.createdAt).toLocaleDateString()}
                             </p>
-                            {useUser().user?.isAdmin && (
+                            {user?.isAdmin && (
                               <Button
                                 variant="ghost"
                                 size="icon"
