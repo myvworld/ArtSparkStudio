@@ -158,7 +158,12 @@ export function setupAuth(app: Express) {
 
         return res.json({
           message: "Login successful",
-          user: { id: user.id, username: user.username, email: user.email },
+          user: { 
+            id: user.id, 
+            username: user.username, 
+            email: user.email,
+            isAdmin: user.isAdmin 
+          },
         });
       });
     })(req, res, next);
@@ -175,7 +180,14 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (req.isAuthenticated()) {
-      return res.json(req.user);
+      const { id, username, email, isAdmin, subscriptionTier } = req.user;
+      return res.json({
+        id,
+        username,
+        email,
+        isAdmin,
+        subscriptionTier
+      });
     }
     res.status(401).send("Not logged in");
   });

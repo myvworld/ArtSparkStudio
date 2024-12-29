@@ -26,11 +26,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus, Users } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 
 interface SubscriptionPlan {
   id: number;
@@ -78,6 +77,7 @@ export default function AdminDashboard() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(plan),
+        credentials: "include",
       });
       if (!response.ok) throw new Error(await response.text());
       return response.json();
@@ -105,7 +105,7 @@ export default function AdminDashboard() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">
-              You don't have permission to access this page.
+              You need to log out and log back in to access this page with admin privileges.
             </p>
           </CardContent>
         </Card>
