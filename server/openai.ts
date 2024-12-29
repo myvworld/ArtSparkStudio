@@ -41,23 +41,34 @@ export async function analyzeArtwork(
       throw new Error("No image data provided for analysis");
     }
 
-    // Clean the base64 string
+    // Clean and validate the base64 string
     const base64Image = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+    if (!base64Image || !isValidBase64(base64Image)) {
+      throw new Error("Invalid image data format");
+    }
 
-    console.log("Preparing OpenAI request for image analysis");
+    console.log("Preparing OpenAI request for image analysis", {
+      title,
+      hasGoals: !!goals,
+      imageSize: base64Image.length
+    });
+
+    const systemPrompt = "You are an expert art critic and educator. Analyze the artwork and provide detailed feedback in a structured JSON format including style, composition, technique, strengths, improvements, and technical suggestions.";
+    const userPrompt = `Analyze this artwork titled "${title}"${goals ? ` with the artist's goals: ${goals}` : ''}. Provide a comprehensive analysis including style, composition, technique, strengths, and areas for improvement. Include specific technical suggestions for improvement.`;
+
     const response = await openai.chat.completions.create({
       model: "gpt-4-vision-preview",
       messages: [
         {
           role: "system",
-          content: "You are an expert art critic and educator. Analyze the artwork and provide detailed feedback in a structured format including technical suggestions."
+          content: systemPrompt
         },
         {
           role: "user",
           content: [
             { 
               type: "text", 
-              text: `Analyze this artwork titled "${title}"${goals ? ` with the artist's goals: ${goals}` : ''}. Provide a comprehensive analysis including style, composition, technique, strengths, and areas for improvement. Include specific technical suggestions for improvement.`
+              text: userPrompt
             },
             {
               type: "image_url",
@@ -108,7 +119,7 @@ export async function analyzeArtwork(
       detailedFeedback: analysis.detailedFeedback || "Detailed feedback unavailable",
       technicalSuggestions: analysis.technicalSuggestions || [],
       learningResources: analysis.learningResources || [],
-      suggestions: analysis.technicalSuggestions || ["No specific suggestions available"] // Ensure suggestions is never null
+      suggestions: analysis.technicalSuggestions || ["No specific suggestions available"]
     };
   } catch (error: any) {
     console.error("Artwork analysis failed:", {
@@ -118,7 +129,6 @@ export async function analyzeArtwork(
       hasGoals: !!goals
     });
 
-    // Return a mock analysis with error status if the real analysis fails
     return getMockAnalysis("Analysis Failed - Service Error");
   }
 }
@@ -152,6 +162,15 @@ function getMockAnalysis(status: string): ArtAnalysis {
     detailedFeedback: "We encountered an error while analyzing your artwork. Please try again later.",
     technicalSuggestions: ["Service temporarily unavailable"],
     learningResources: [],
-    suggestions: ["Service temporarily unavailable"] // Ensure suggestions is never null
+    suggestions: ["Service temporarily unavailable"]
   };
+}
+
+// Helper function to validate base64 string
+function isValidBase64(str: string): boolean {
+  try {
+    return btoa(atob(str)) === str;
+  } catch (err) {
+    return false;
+  }
 }
