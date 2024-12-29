@@ -30,7 +30,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
-      <section className="relative h-[80vh] flex items-center bg-gradient-to-br from-purple-900 via-violet-800 to-purple-900 px-4 overflow-hidden">
+      <section className="relative h-[80vh] flex items-center bg-gradient-to-br from-purple-900 via-violet-800 to-purple-900 px-6 md:px-8 lg:px-12 overflow-hidden">
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
         <div className="relative max-w-6xl mx-auto w-full grid md:grid-cols-2 gap-8 items-center">
           <div className="text-left">
@@ -78,7 +78,7 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="max-w-6xl mx-auto px-4 py-24 relative">
+      <div className="max-w-6xl mx-auto px-6 md:px-8 lg:px-12 py-24 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 to-transparent pointer-events-none" />
         <h2 className="text-4xl font-bold text-center mb-16 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-purple-600">Our Features</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
