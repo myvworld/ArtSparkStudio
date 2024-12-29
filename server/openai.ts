@@ -80,8 +80,14 @@ export async function analyzeArtwork(
     // Clean and validate the base64 string
     const base64Image = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
     if (!base64Image || !isValidBase64(base64Image)) {
+      console.error('Invalid base64 image data');
       throw new Error("Invalid image data format");
     }
+
+    console.log('Image validated and ready for analysis:', {
+      base64Length: base64Image.length,
+      isValid: isValidBase64(base64Image)
+    });
 
     console.log("Preparing OpenAI vision request");
 

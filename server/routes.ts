@@ -76,9 +76,19 @@ app.post("/api/artwork", upload.single('image'), async (req, res) => {
 
     console.log(`Processing artwork upload: "${title}" by user ${req.user.id}`);
 
-    // Convert image to base64
+    // Validate image type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ error: "Invalid image format. Please upload JPEG, PNG or WebP" });
+    }
+
+    // Convert and validate image size
     const imageBase64 = req.file.buffer.toString('base64');
-    console.log('Image converted to base64', {
+    if (imageBase64.length > 5000000) { // ~5MB limit
+      return res.status(400).json({ error: "Image size too large. Please upload a smaller image" });
+    }
+
+    console.log('Processing image:', {
       size: req.file.size,
       mimeType: req.file.mimetype,
       base64Length: imageBase64.length
