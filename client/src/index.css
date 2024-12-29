@@ -3,11 +3,100 @@
 @tailwind utilities;
 
 @layer base {
+  /* Universal Styling */
   * {
     @apply border-border;
   }
 
+  /* Body Styling */
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased bg-gray-900 text-gray-100;
+  }
+
+  /* Links */
+  a {
+    @apply text-teal-400 hover:text-teal-300;
+  }
+
+  /* Headings */
+  h1, h2, h3, h4 {
+    @apply font-bold text-gray-50;
+  }
+
+  h1 {
+    @apply text-4xl lg:text-5xl;
+  }
+
+  h2 {
+    @apply text-3xl lg:text-4xl;
+  }
+
+  h3 {
+    @apply text-2xl lg:text-3xl;
+  }
+
+  p {
+    @apply text-gray-300 leading-relaxed;
+  }
+}
+
+@layer components {
+  /* Navbar */
+  .navbar {
+    @apply flex justify-between items-center px-4 py-2 bg-gray-800 shadow-md text-gray-100;
+  }
+
+  .navbar-link {
+    @apply px-4 py-2 rounded-md text-teal-400 hover:text-teal-300;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply px-6 py-2 rounded-full font-bold transition bg-teal-400 text-gray-900 hover:bg-teal-300;
+  }
+
+  .btn-outline {
+    @apply px-6 py-2 rounded-full font-bold transition border border-teal-400 text-teal-400 hover:bg-teal-400 hover:text-gray-900;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-gray-800 shadow-lg rounded-lg p-6 transition hover:shadow-2xl;
+  }
+
+  .card-title {
+    @apply text-lg font-semibold text-teal-400;
+  }
+
+  .card-body {
+    @apply text-gray-300 mt-2;
+  }
+
+  /* Modals */
+  .modal {
+    @apply fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50;
+  }
+
+  .modal-content {
+    @apply bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-lg;
+  }
+
+  .modal-close {
+    @apply absolute top-4 right-4 text-teal-400 hover:text-teal-300 cursor-pointer;
+  }
+}
+
+@layer utilities {
+  /* Custom Utilities */
+  .bg-gradient-dark {
+    background: linear-gradient(135deg, #1f1f1f, #292929);
+  }
+
+  .text-highlight {
+    @apply text-teal-400 hover:text-teal-300;
+  }
+
+  .shadow-card {
+    @apply shadow-lg hover:shadow-2xl;
   }
 }
