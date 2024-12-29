@@ -55,9 +55,13 @@ export async function initializeOpenAI(): Promise<void> {
 
 // Helper function to validate base64 string
 function isValidBase64(str: string): boolean {
+  if (!str) return false;
   try {
+    // Check if string matches base64 pattern
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(str)) return false;
     return btoa(atob(str)) === str;
   } catch (err) {
+    console.error('Base64 validation error:', err);
     return false;
   }
 }
@@ -103,7 +107,7 @@ export async function analyzeArtwork(
       throw new Error("Title is required for analysis");
     }
 
-    const validModel = "gpt-4-turbo";
+    const validModel = "gpt-4-1106-vision-preview";
     console.log('Preparing API request:', {
       model: validModel,
       imageSize: base64Image.length,
