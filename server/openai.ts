@@ -28,7 +28,7 @@ export async function initializeOpenAI(): Promise<void> {
     // Verify the API key by making a simple API call
     console.log("Verifying OpenAI API key...");
     const testResponse = await client.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: "gpt-4-turbo-preview",
       messages: [{ role: "system", content: "API key verification test" }],
       max_tokens: 5
     });
@@ -115,7 +115,7 @@ export async function analyzeArtwork(
     });
 
     const response = await openai.chat.completions.create({
-      model: validModel, //Corrected: Using the updated model in the API call
+      model: validModel, // Using the correct model for vision tasks
       messages: [
         {
           role: "system",
@@ -146,11 +146,6 @@ export async function analyzeArtwork(
     if (!response.choices?.[0]?.message?.content) {
       console.error('Invalid API response:', response);
       throw new Error("Invalid response format from OpenAI API");
-    }
-
-    if (!response.choices[0]?.message?.content) {
-      console.log("Empty response from OpenAI");
-      throw new Error("Empty response from OpenAI");
     }
 
     console.log("Successfully received OpenAI response");
