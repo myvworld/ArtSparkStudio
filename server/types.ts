@@ -1,4 +1,3 @@
-
 export interface ArtAnalysis {
   style: {
     current: string;
@@ -27,6 +26,7 @@ export interface ArtAnalysis {
   detailedFeedback: string;
   technicalSuggestions: string[];
   learningResources: string[];
+  suggestions: string[]; // Added this field to match the implementation
 }
 
 export interface StyleComparison {
