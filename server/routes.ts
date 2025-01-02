@@ -150,234 +150,45 @@ export function registerRoutes(app: Express): Server {
             rawAnalysis: JSON.stringify(analysis, null, 2),
           });
 
+          // Validate and sanitize the analysis object
+          const sanitizedAnalysis = {
+            style: analysis.style || "",
+            technique: analysis.technique || "",
+            strengths: analysis.strengths || [],
+            improvements: analysis.improvements || [],
+            detailedFeedback: analysis.detailedFeedback || "",
+            technicalSuggestions: analysis.technicalSuggestions || [],
+            learningResources: analysis.learningResources || []
+          };
+
+          const feedbackToInsert = {
+            artworkId: artwork.id,
+            analysis: JSON.stringify({
+              style: sanitizedAnalysis.style,
+              technique: sanitizedAnalysis.technique,
+              strengths: sanitizedAnalysis.strengths,
+              improvements: sanitizedAnalysis.improvements,
+              detailedFeedback: sanitizedAnalysis.detailedFeedback,
+              technicalSuggestions: sanitizedAnalysis.technicalSuggestions,
+              learningResources: sanitizedAnalysis.learningResources
+            }),
+            suggestions: ["Upload your next artwork to see how your style evolves!"]
+          };
+
+          console.log(
+            "Inserting feedback with validated JSON:",
+            JSON.stringify(feedbackToInsert, null, 2)
+          );
+
           try {
-            // Validate analysis object before processing
-            function isValidAnalysis(analysis: any): boolean {
-              return (
-                analysis &&
-                typeof analysis === "object" &&
-                analysis.style &&
-                typeof analysis.style === "object" &&
-                analysis.composition &&
-                typeof analysis.composition === "object" &&
-                analysis.technique &&
-                typeof analysis.technique === "object" &&
-                Array.isArray(analysis.strengths) &&
-                Array.isArray(analysis.improvements) &&
-                typeof analysis.detailedFeedback === "string"
-              );
-            }
-
-            if (!isValidAnalysis(analysis)) {
-              console.error("Invalid analysis structure:", analysis);
-              throw new Error("Invalid analysis data structure from OpenAI");
-            }
-
-            // Create properly structured feedback data
-            const feedbackData: NewFeedback = {
-              artworkId: artwork.id,
-              analysis: {
-                style: {
-                  current:
-                    typeof analysis.style === "object"
-                      ? analysis.style.current
-                      : String(analysis.style || "Unknown style"),
-                  influences: Array.isArray(analysis.style?.influences)
-                    ? analysis.style.influences
-                    : [],
-                  similarArtists: Array.isArray(analysis.style?.similarArtists)
-                    ? analysis.style.similarArtists
-                    : [],
-                  period: analysis.style?.period || null,
-                  movement: analysis.style?.movement || null,
-                },
-                composition: {
-                  structure:
-                    typeof analysis.composition === "object"
-                      ? analysis.composition.structure
-                      : String(analysis.composition || "Not analyzed"),
-                  balance: analysis.composition?.balance || "Not analyzed",
-                  colorTheory:
-                    analysis.composition?.colorTheory || "Not analyzed",
-                  perspective: analysis.composition?.perspective || null,
-                  focusPoints: Array.isArray(analysis.composition?.focusPoints)
-                    ? analysis.composition.focusPoints
-                    : [],
-                  dynamicElements: Array.isArray(
-                    analysis.composition?.dynamicElements,
-                  )
-                    ? analysis.composition.dynamicElements
-                    : [],
-                },
-                technique: {
-                  medium:
-                    typeof analysis.technique === "object"
-                      ? analysis.technique.medium
-                      : String(analysis.technique || "Not specified"),
-                  execution: analysis.technique?.execution || "Not analyzed",
-                  skillLevel: analysis.technique?.skillLevel || "Not analyzed",
-                  uniqueApproaches: Array.isArray(
-                    analysis.technique?.uniqueApproaches,
-                  )
-                    ? analysis.technique.uniqueApproaches
-                    : [],
-                  materialUsage: analysis.technique?.materialUsage || null,
-                },
-                strengths: Array.isArray(analysis.strengths)
-                  ? analysis.strengths
-                  : [],
-                improvements: Array.isArray(analysis.improvements)
-                  ? analysis.improvements
-                  : [],
-                detailedFeedback: String(
-                  analysis.detailedFeedback || "No detailed feedback available",
-                ),
-                technicalSuggestions: Array.isArray(
-                  analysis.technicalSuggestions,
-                )
-                  ? analysis.technicalSuggestions
-                  : [],
-                learningResources: [],
-              },
-              suggestions: Array.isArray(analysis?.suggestions)
-                ? analysis.suggestions
-                : [
-                    "Upload your next artwork to see how your style evolves! The AI will analyze your progress and provide insights on your artistic development.",
-                  ],
-            };
-
-            console.log("Structured feedback data before insertion:", {
-              artworkId: feedbackData.artworkId,
-              analysisStructure: Object.keys(feedbackData.analysis),
-              suggestionsCount: feedbackData.suggestions.length,
-            });
-
-            // For json column, pass the object directly without stringifying
-            console.log("Inserting feedback with analysis:", {
-              analysisType: typeof feedbackData.analysis,
-              isObject:
-                feedbackData.analysis !== null &&
-                typeof feedbackData.analysis === "object",
-              hasRequiredFields:
-                feedbackData.analysis?.style &&
-                feedbackData.analysis?.composition &&
-                feedbackData.analysis?.technique,
-            });
-
-            // Validate and sanitize the feedback data
-            const sanitizedAnalysis = {
-              style: {
-                current: String(
-                  feedbackData.analysis?.style?.current ||
-                    "Style analysis unavailable",
-                ),
-                influences: Array.isArray(
-                  feedbackData.analysis?.style?.influences,
-                )
-                  ? feedbackData.analysis.style.influences
-                  : [],
-                similarArtists: Array.isArray(
-                  feedbackData.analysis?.style?.similarArtists,
-                )
-                  ? feedbackData.analysis.style.similarArtists
-                  : [],
-                period: feedbackData.analysis?.style?.period || null,
-                movement: feedbackData.analysis?.style?.movement || null,
-              },
-              composition: {
-                structure: String(
-                  feedbackData.analysis?.composition?.structure ||
-                    "Structure analysis unavailable",
-                ),
-                balance: String(
-                  feedbackData.analysis?.composition?.balance ||
-                    "Balance analysis unavailable",
-                ),
-                colorTheory: String(
-                  feedbackData.analysis?.composition?.colorTheory ||
-                    "Color theory analysis unavailable",
-                ),
-                perspective:
-                  feedbackData.analysis?.composition?.perspective || null,
-                focusPoints: Array.isArray(
-                  feedbackData.analysis?.composition?.focusPoints,
-                )
-                  ? feedbackData.analysis.composition.focusPoints
-                  : [],
-                dynamicElements: Array.isArray(
-                  feedbackData.analysis?.composition?.dynamicElements,
-                )
-                  ? feedbackData.analysis.composition.dynamicElements
-                  : [],
-              },
-              technique: {
-                medium: String(
-                  feedbackData.analysis?.technique?.medium ||
-                    "Medium analysis unavailable",
-                ),
-                execution: String(
-                  feedbackData.analysis?.technique?.execution ||
-                    "Execution analysis unavailable",
-                ),
-                skillLevel: String(
-                  feedbackData.analysis?.technique?.skillLevel ||
-                    "Skill level analysis unavailable",
-                ),
-                uniqueApproaches: Array.isArray(
-                  feedbackData.analysis?.technique?.uniqueApproaches,
-                )
-                  ? feedbackData.analysis.technique.uniqueApproaches
-                  : [],
-                materialUsage:
-                  feedbackData.analysis?.technique?.materialUsage || null,
-              },
-              strengths: Array.isArray(feedbackData.analysis?.strengths)
-                ? feedbackData.analysis.strengths
-                : [],
-              improvements: Array.isArray(feedbackData.analysis?.improvements)
-                ? feedbackData.analysis.improvements
-                : [],
-              detailedFeedback: String(
-                feedbackData.analysis?.detailedFeedback ||
-                  "Detailed feedback unavailable",
-              ),
-              technicalSuggestions: Array.isArray(
-                feedbackData.analysis?.technicalSuggestions,
-              )
-                ? feedbackData.analysis.technicalSuggestions
-                : [],
-              learningResources: Array.isArray(
-                feedbackData.analysis?.learningResources,
-              )
-                ? feedbackData.analysis.learningResources
-                : [],
-            };
-
-            // Log the sanitized data for debugging
-            console.log(
-              "Sanitized analysis data:",
-              JSON.stringify(sanitizedAnalysis, null, 2),
-            );
-
-            // Parse and stringify to ensure valid JSON
-            const analysisJson = JSON.parse(JSON.stringify(sanitizedAnalysis));
-
-            const feedbackToInsert = {
-              artworkId: artwork.id,
-              suggestions: [
-                "Upload your next artwork to see how your style evolves!",
-              ],
-              analysis: sanitizedAnalysis,
-            };
-
-            console.log(
-              "Inserting feedback:",
-              JSON.stringify(feedbackToInsert, null, 2),
-            );
-
+            // Ensure the analysis is a valid JSON before insertion
             const [feedbackEntry] = await db
               .insert(feedback)
-              .values(feedbackToInsert)
+              .values({
+                artworkId: feedbackToInsert.artworkId,
+                analysis: feedbackToInsert.analysis,
+                suggestions: feedbackToInsert.suggestions
+              })
               .returning();
 
             console.log("Feedback stored successfully:", {
@@ -396,12 +207,10 @@ export function registerRoutes(app: Express): Server {
               console.log("Successfully completed artwork upload and analysis");
               res.json(artworkWithFeedback);
             } catch (error) {
-              console.error("JSON insert error:", {
+              console.error("JSON response error:", {
                 error: error instanceof Error ? error.message : String(error),
                 feedbackDataShape: {
-                  hasStyle: !!feedbackData.analysis?.style,
-                  hasComposition: !!feedbackData.analysis?.composition,
-                  hasTechnique: !!feedbackData.analysis?.technique,
+                  hasAnalysis: !!feedbackEntry.analysis
                 },
               });
               throw error;
@@ -412,10 +221,9 @@ export function registerRoutes(app: Express): Server {
               stack: error instanceof Error ? error.stack : undefined,
               analysisKeys: Object.keys(analysis || {}),
               rawAnalysis: analysis,
-              feedbackDataShape: {
-                analysis: typeof feedbackData.analysis,
-                analysisContent: JSON.stringify(feedbackData.analysis, null, 2),
-                sanitizedContent: JSON.stringify(sanitizedAnalysis, null, 2)
+              feedbackShape: {
+                analysis: typeof feedbackToInsert.analysis,
+                analysisContent: feedbackToInsert.analysis
               }
             });
             // Even if analysis processing fails, we still return the artwork
