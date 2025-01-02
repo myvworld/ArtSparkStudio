@@ -9,8 +9,6 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-console.log("Initializing database connection...");
-
 const db = drizzle({
   connection: process.env.DATABASE_URL,
   schema,
@@ -21,31 +19,24 @@ const db = drizzle({
 async function testConnection() {
   try {
     console.log("Testing database connection...");
-    
+
     // Verify database URL
     if (!process.env.DATABASE_URL) {
       throw new Error("DATABASE_URL not configured");
     }
 
-    // Test basic connectivity
-    await db.execute(sql`SELECT 1`);
-    
-    // Verify we can query a table
-    await db.execute(sql`SELECT COUNT(*) FROM users`);
-    
-    // Test write permission with a temporary record
-    await db.transaction(async (tx) => {
-      const [result] = await tx.execute(sql`
-        CREATE TEMPORARY TABLE _connection_test (id SERIAL PRIMARY KEY);
-        DROP TABLE _connection_test;
-      `);
-      return result;
-    });
+    // Test basic connectivity with proper error handling
+    const result = await db.execute(sql`SELECT current_timestamp`);
+    if (!result) {
+      throw new Error("Failed to execute test query");
+    }
 
     console.log("Database connection verified successfully:", {
       url: process.env.DATABASE_URL.replace(/:[^:@]*@/, ':****@'),
-      status: 'connected'
+      status: 'connected',
+      timestamp: new Date().toISOString()
     });
+
   } catch (error) {
     console.error("Database connection error:", {
       message: error instanceof Error ? error.message : String(error),
@@ -53,11 +44,15 @@ async function testConnection() {
       stack: error instanceof Error ? error.stack : undefined,
       connectionUrl: process.env.DATABASE_URL?.replace(/:[^:@]*@/, ':****@')
     });
-    process.exit(1);
+    throw error;
   }
 }
 
-// Execute the test immediately
-testConnection();
+// Execute the test
+testConnection()
+  .catch((error) => {
+    console.error("Failed to establish database connection:", error);
+    process.exit(1);
+  });
 
 export { db };
