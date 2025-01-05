@@ -23,7 +23,7 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api") && process.env.NODE_ENV !== 'production') {
+    if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse && Object.keys(capturedJsonResponse).length < 10) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
@@ -55,7 +55,7 @@ async function startServer() {
     console.log('Starting server initialization...');
 
     // Verify environment variables first
-    const requiredEnvVars = ['DATABASE_URL', 'OPENAI_API_KEY'];
+    const requiredEnvVars = ['DATABASE_URL'];
     const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
     if (missingEnvVars.length > 0) {
@@ -73,7 +73,6 @@ async function startServer() {
 
       const dbTest = db.execute(sql`SELECT 1 as test`);
       await Promise.race([dbTest, dbTimeout]);
-
       console.log('Database connection verified successfully');
     } catch (dbError) {
       console.error('Database connection test failed:', {
@@ -89,18 +88,19 @@ async function startServer() {
       await initializeOpenAI();
       console.log('OpenAI client initialized successfully');
     } catch (openaiError) {
+      // Log the error but continue server startup
       console.error('OpenAI initialization failed:', {
         error: openaiError instanceof Error ? openaiError.message : openaiError,
         stack: openaiError instanceof Error ? openaiError.stack : undefined
       });
-      throw new Error('Failed to initialize OpenAI client');
+      console.warn('Server will continue without OpenAI functionality');
     }
 
     // Initialize routes and server
     console.log('Initializing routes...');
     const server = registerRoutes(app);
 
-    // Enhanced error handling middleware with detailed logging
+    // Enhanced error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error('Error in request:', {
         status: err.status || err.statusCode,
@@ -112,10 +112,7 @@ async function startServer() {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
 
-      res.status(status).json({ 
-        message,
-        ...(process.env.NODE_ENV !== 'production' ? { stack: err.stack } : {})
-      });
+      res.status(status).json({ message });
     });
 
     // Setup Vite or static serving
@@ -126,7 +123,7 @@ async function startServer() {
       serveStatic(app);
     }
 
-    const PORT = parseInt(process.env.PORT || "3000");
+    const PORT = 5000; //Hardcoded port from edited code
     server.listen(PORT, "0.0.0.0", () => {
       log(`Server successfully started and listening on port ${PORT}`);
     });
@@ -139,7 +136,6 @@ async function startServer() {
         process.exit(0);
       });
 
-      // Force exit if graceful shutdown fails
       setTimeout(() => {
         console.error('Could not close connections in time, forcefully shutting down');
         process.exit(1);

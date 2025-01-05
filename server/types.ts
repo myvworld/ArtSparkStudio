@@ -3,21 +3,21 @@ export interface ArtAnalysis {
     current: string;
     influences: string[];
     similarArtists: string[];
-    period: string;
-    movement: string;
+    period?: string;
+    movement?: string;
   };
   composition: {
     structure: string;
     balance: string;
     colorTheory: string;
-    perspective: string;
+    perspective?: string;
     focusPoints: string[];
     dynamicElements: string[];
   };
   technique: {
     medium: string;
     execution: string;
-    skillLevel: string;
+    skillLevel: "Beginner" | "Intermediate" | "Advanced";
     uniqueApproaches: string[];
     materialUsage: string;
   };
@@ -26,7 +26,7 @@ export interface ArtAnalysis {
   detailedFeedback: string;
   technicalSuggestions: string[];
   learningResources: string[];
-  suggestions: string[]; // Added this field to match the implementation
+  suggestions: string[]; // Added to match the feedback schema
 }
 
 export interface StyleComparison {
