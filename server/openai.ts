@@ -19,7 +19,7 @@ export async function initializeOpenAI(): Promise<void> {
 
     // Verify the client works with a simple request
     const verifyResponse = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4-turbo-preview",
       messages: [{ role: "system", content: "API test" }],
       max_tokens: 5
     });
@@ -103,9 +103,9 @@ export async function analyzeArtwork(
   "learningResources": ["Recommended resources for improvement"]
 }`;
 
-    console.log("Sending analysis request to GPT-4-Vision...");
+    console.log("Sending analysis request to GPT-4-Turbo...");
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-4-turbo-preview",
       messages: [
         {
           role: "system",
