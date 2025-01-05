@@ -15,7 +15,6 @@ import {
   styleComparisons,
   subscriptionPlans,
   adminSettings,
-  type NewFeedback,
 } from "@db/schema";
 
 const storage = multer.memoryStorage();
@@ -27,12 +26,6 @@ const upload = multer({
 });
 
 function requireAdmin(req: any, res: any, next: any) {
-  console.log("Admin check:", {
-    isAuthenticated: req.isAuthenticated(),
-    user: req.user,
-    isAdmin: req.user?.isAdmin,
-  });
-
   if (!req.isAuthenticated()) {
     return res.status(401).send("Not authenticated");
   }
@@ -47,13 +40,12 @@ function requireAdmin(req: any, res: any, next: any) {
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
-  // Basic request logging
   app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
     next();
   });
 
-  // Simplified artwork upload endpoint with basic feedback storage
+  // Basic artwork upload endpoint with minimal feedback storage
   app.post("/api/artwork", upload.single("image"), async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
@@ -73,7 +65,7 @@ export function registerRoutes(app: Express): Server {
       const imageBase64 = req.file.buffer.toString("base64");
       const imageUrl = `data:${req.file.mimetype};base64,${imageBase64}`;
 
-      // Create artwork record first
+      // Create artwork record
       const [artwork] = await db
         .insert(artworks)
         .values({
@@ -85,20 +77,20 @@ export function registerRoutes(app: Express): Server {
         })
         .returning();
 
-      // Get the analysis
+      // Get analysis
       const analysis = await analyzeArtwork(imageBase64, title, goals);
 
       if (!analysis) {
         return res.status(500).json({ error: "Failed to analyze artwork" });
       }
 
-      // Store feedback with minimal transformation
+      // Store feedback using simple string storage
       const [feedbackEntry] = await db
         .insert(feedback)
         .values({
           artworkId: artwork.id,
-          analysis: JSON.stringify(analysis), // Explicitly stringify the analysis
-          suggestions: JSON.stringify(analysis.technicalSuggestions || []) // Explicitly stringify the suggestions
+          analysis: JSON.stringify(analysis),
+          suggestions: ["Here's your artwork analysis! Upload another piece to track your progress."]
         })
         .returning();
 
@@ -107,7 +99,7 @@ export function registerRoutes(app: Express): Server {
         feedback: [{
           id: feedbackEntry.id,
           analysis: analysis,
-          suggestions: analysis.technicalSuggestions || [],
+          suggestions: ["Here's your artwork analysis! Upload another piece to track your progress."],
           createdAt: feedbackEntry.createdAt
         }]
       });
