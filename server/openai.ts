@@ -24,13 +24,22 @@ export async function initializeOpenAI(): Promise<void> {
       max_tokens: 5
     });
 
+    console.log("OpenAI verification response:", {
+      success: !!verifyResponse,
+      hasChoices: !!verifyResponse?.choices?.length,
+      firstChoice: verifyResponse?.choices?.[0]?.message?.content
+    });
+
     if (!verifyResponse) {
       throw new Error("Failed to verify OpenAI client");
     }
 
     console.log("OpenAI client verified and initialized successfully");
   } catch (error) {
-    console.error("Failed to initialize OpenAI client:", error);
+    console.error("Failed to initialize OpenAI client:", {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined
+    });
     throw error;
   }
 }
@@ -70,6 +79,8 @@ export async function analyzeArtwork(
       console.error('Invalid base64 image data');
       throw new Error("Invalid image data format");
     }
+
+    console.log("Preparing OpenAI request with valid image data");
 
     const systemPrompt = `You are an expert art critic and educator specializing in visual arts analysis. Analyze the artwork and provide structured feedback in the following JSON format. Be thorough and specific in your analysis:
 
@@ -133,18 +144,20 @@ export async function analyzeArtwork(
     });
 
     if (!response.choices?.[0]?.message?.content) {
-      console.error('Invalid API response:', response);
+      console.error('Invalid API response:', JSON.stringify(response, null, 2));
       throw new Error("Invalid response format from OpenAI API");
     }
 
     console.log("Successfully received OpenAI response");
+    console.log("Raw API response:", response.choices[0].message.content);
 
     try {
       const parsedResponse = JSON.parse(response.choices[0].message.content);
       console.log("Successfully parsed OpenAI response into JSON", {
         hasStyle: !!parsedResponse.style,
         hasComposition: !!parsedResponse.composition,
-        hasTechnique: !!parsedResponse.technique
+        hasTechnique: !!parsedResponse.technique,
+        responseStructure: Object.keys(parsedResponse)
       });
 
       // Ensure we return a properly formatted analysis object
@@ -184,12 +197,13 @@ export async function analyzeArtwork(
         hasStyle: !!analysis.style,
         hasComposition: !!analysis.composition,
         hasTechnique: !!analysis.technique,
-        suggestionsCount: analysis.suggestions.length
+        suggestionsCount: analysis.suggestions.length,
+        analysisJson: JSON.stringify(analysis)
       });
 
       return analysis;
     } catch (error) {
-      console.error("Failed to parse OpenAI response:", error);
+      console.error("Failed to parse OpenAI response:", error, "\nResponse was:", response.choices[0].message.content);
       throw new Error("Invalid response format from OpenAI");
     }
   } catch (error) {
