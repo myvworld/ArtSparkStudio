@@ -5,7 +5,7 @@ import { setupAuth } from "./auth";
 import { db } from "@db";
 import { eq, desc, and, sql } from "drizzle-orm";
 import express from "express";
-import { analyzeArtwork } from "./openai"; // Import from openai.ts
+import { analyzeArtwork } from "./openai";
 import {
   artworks,
   users,
@@ -17,11 +17,6 @@ import {
   adminSettings,
   type NewFeedback,
 } from "@db/schema";
-import {
-  createStripeCheckoutSession,
-  handleStripeWebhook,
-  SUBSCRIPTION_PRICES,
-} from "./stripe";
 
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -111,8 +106,7 @@ export function registerRoutes(app: Express): Server {
         console.log("Analysis received, preparing for database insertion", {
           hasAnalysis: !!analysis,
           analysisType: typeof analysis,
-          hasStyle: !!analysis.style,
-          hasTechnique: !!analysis.technique
+          analysisJson: JSON.stringify(analysis)
         });
 
         // Create feedback entry with the structured analysis
@@ -120,10 +114,10 @@ export function registerRoutes(app: Express): Server {
           .insert(feedback)
           .values({
             artworkId: artwork.id,
-            analysis: analysis,
+            analysis: JSON.parse(JSON.stringify(analysis)), // Ensure clean JSON
             suggestions: [
               "Here's your artwork analysis! Upload another piece to track your progress.",
-              ...analysis.technicalSuggestions || []
+              ...(analysis.technicalSuggestions || [])
             ]
           })
           .returning();
