@@ -86,7 +86,7 @@ export const ratings = pgTable("ratings", {
 export const feedback = pgTable("feedback", {
   id: serial("id").primaryKey(),
   artworkId: integer("artwork_id").references(() => artworks.id).notNull(),
-  suggestions: text("suggestions").array().notNull().default(['Upload your next artwork to see how your style evolves! The AI will analyze your progress and provide insights on your artistic development.']),
+  suggestions: text("suggestions").array().notNull().default(['Upload your next artwork to see how your style evolves!']),
   analysis: json("analysis").$type<{
     style: {
       current: string;

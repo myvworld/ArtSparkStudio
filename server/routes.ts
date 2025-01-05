@@ -79,37 +79,10 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Title is required" });
       }
 
-      console.log(
-        `Processing artwork upload: "${title}" by user ${req.user.id}`,
-      );
+      console.log(`Processing artwork upload: "${title}" by user ${req.user.id}`);
 
-      // Validate image type
-      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-      if (!allowedTypes.includes(req.file.mimetype)) {
-        return res
-          .status(400)
-          .json({
-            error: "Invalid image format. Please upload JPEG, PNG or WebP",
-          });
-      }
-
-      // Convert and validate image size
+      // Convert and validate image
       const imageBase64 = req.file.buffer.toString("base64");
-      if (imageBase64.length > 5000000) {
-        // ~5MB limit
-        return res
-          .status(400)
-          .json({
-            error: "Image size too large. Please upload a smaller image",
-          });
-      }
-
-      console.log("Processing image:", {
-        size: req.file.size,
-        mimeType: req.file.mimetype,
-        base64Length: imageBase64.length,
-      });
-
       const imageUrl = `data:${req.file.mimetype};base64,${imageBase64}`;
 
       // First create the artwork record
@@ -128,142 +101,96 @@ export function registerRoutes(app: Express): Server {
 
       // Then analyze the artwork
       try {
-        console.log("Starting OpenAI analysis with parameters:", {
-          title,
-          hasGoals: !!goals,
-          imageSize: imageBase64.length,
-        });
-
+        console.log("Starting OpenAI analysis");
         const analysis = await analyzeArtwork(imageBase64, title, goals);
 
-        console.log("OpenAI analysis completed successfully:", {
-          artworkId: artwork.id,
-          hasAnalysis: !!analysis,
-        });
-
-        // Store the analysis
-        if (analysis) {
-          console.log("Processing analysis object:", {
-            hasStyle: !!analysis.style,
-            hasComposition: !!analysis.composition,
-            hasTechnique: !!analysis.technique,
-            rawAnalysis: JSON.stringify(analysis, null, 2),
-          });
-
-          // Validate and sanitize the analysis object
-          const sanitizedAnalysis = {
-            style: analysis.style || "",
-            technique: analysis.technique || "",
-            strengths: analysis.strengths || [],
-            improvements: analysis.improvements || [],
-            detailedFeedback: analysis.detailedFeedback || "",
-            technicalSuggestions: analysis.technicalSuggestions || [],
-            learningResources: analysis.learningResources || []
-          };
-
-          const feedbackToInsert = {
-            artworkId: artwork.id,
-            analysis: JSON.stringify({
-              style: sanitizedAnalysis.style,
-              technique: sanitizedAnalysis.technique,
-              strengths: sanitizedAnalysis.strengths,
-              improvements: sanitizedAnalysis.improvements,
-              detailedFeedback: sanitizedAnalysis.detailedFeedback,
-              technicalSuggestions: sanitizedAnalysis.technicalSuggestions,
-              learningResources: sanitizedAnalysis.learningResources
-            }),
-            suggestions: ["Upload your next artwork to see how your style evolves!"]
-          };
-
-          console.log(
-            "Inserting feedback with validated JSON:",
-            JSON.stringify(feedbackToInsert, null, 2)
-          );
-
-          try {
-            // Ensure the analysis is a valid JSON before insertion
-            const [feedbackEntry] = await db
-              .insert(feedback)
-              .values({
-                artworkId: feedbackToInsert.artworkId,
-                analysis: feedbackToInsert.analysis,
-                suggestions: feedbackToInsert.suggestions
-              })
-              .returning();
-
-            console.log("Feedback stored successfully:", {
-              feedbackId: feedbackEntry.id,
-              artworkId: artwork.id,
-              hasAnalysis: !!feedbackEntry.analysis,
-            });
-
-            // Add the feedback to the response
-            const artworkWithFeedback = {
-              ...artwork,
-              feedback: [feedbackEntry],
-            };
-
-            try {
-              console.log("Successfully completed artwork upload and analysis");
-              res.json(artworkWithFeedback);
-            } catch (error) {
-              console.error("JSON response error:", {
-                error: error instanceof Error ? error.message : String(error),
-                feedbackDataShape: {
-                  hasAnalysis: !!feedbackEntry.analysis
-                },
-              });
-              throw error;
-            }
-          } catch (error) {
-            console.error("Error processing analysis object:", {
-              error: error instanceof Error ? error.message : String(error),
-              stack: error instanceof Error ? error.stack : undefined,
-              analysisKeys: Object.keys(analysis || {}),
-              rawAnalysis: analysis,
-              feedbackShape: {
-                analysis: typeof feedbackToInsert.analysis,
-                analysisContent: feedbackToInsert.analysis
-              }
-            });
-            // Even if analysis processing fails, we still return the artwork
-            res.json({
-              ...artwork,
-              feedback: [],
-              analysisError:
-                error instanceof Error
-                  ? error.message
-                  : "Error processing analysis",
-            });
-          }
-        } else {
+        if (!analysis) {
           throw new Error("Analysis failed - no result returned");
         }
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error("Unknown error");
-        console.error("Error during artwork analysis:", {
-          message: err.message,
-          stack: err.stack,
+
+        console.log("Analysis received, preparing for database insertion");
+
+        // Structure the analysis data according to our schema
+        const structuredAnalysis = {
+          style: {
+            current: analysis.style?.current || "Style analysis unavailable",
+            influences: analysis.style?.influences || [],
+            similarArtists: analysis.style?.similarArtists || [],
+            period: analysis.style?.period || "Period unknown",
+            movement: analysis.style?.movement || "Movement unknown"
+          },
+          composition: {
+            structure: analysis.composition?.structure || "Structure analysis unavailable",
+            balance: analysis.composition?.balance || "Balance analysis unavailable",
+            colorTheory: analysis.composition?.colorTheory || "Color theory analysis unavailable",
+            perspective: analysis.composition?.perspective || "Perspective analysis unavailable",
+            focusPoints: analysis.composition?.focusPoints || [],
+            dynamicElements: analysis.composition?.dynamicElements || []
+          },
+          technique: {
+            medium: analysis.technique?.medium || "Medium analysis unavailable",
+            execution: analysis.technique?.execution || "Execution analysis unavailable",
+            skillLevel: analysis.technique?.skillLevel || "Skill level analysis unavailable",
+            uniqueApproaches: analysis.technique?.uniqueApproaches || [],
+            materialUsage: analysis.technique?.materialUsage || "Material usage analysis unavailable"
+          },
+          strengths: analysis.strengths || [],
+          improvements: analysis.improvements || [],
+          detailedFeedback: analysis.detailedFeedback || "Detailed feedback unavailable",
+          technicalSuggestions: analysis.technicalSuggestions || [],
+          learningResources: analysis.learningResources || []
+        };
+
+        console.log("Structured analysis:", JSON.stringify(structuredAnalysis, null, 2));
+
+        // Create feedback entry with the structured analysis
+        const [feedbackEntry] = await db
+          .insert(feedback)
+          .values({
+            artworkId: artwork.id,
+            analysis: structuredAnalysis,
+            suggestions: [
+              "Here's your artwork analysis! Upload another piece to track your progress.",
+              ...analysis.technicalSuggestions || []
+            ]
+          })
+          .returning();
+
+        console.log("Feedback stored successfully:", {
+          feedbackId: feedbackEntry.id,
           artworkId: artwork.id,
+          hasAnalysis: !!feedbackEntry.analysis
         });
-        // Even if analysis fails, we still return the artwork
+
+        // Return the complete artwork with feedback
         res.json({
           ...artwork,
-          feedback: [],
-          analysisError: err.message,
+          feedback: [{
+            id: feedbackEntry.id,
+            analysis: feedbackEntry.analysis,
+            suggestions: feedbackEntry.suggestions,
+            createdAt: feedbackEntry.createdAt
+          }]
+        });
+      } catch (error) {
+        console.error("Error during artwork analysis:", error);
+        // Still return the artwork even if analysis fails
+        res.json({
+          ...artwork,
+          feedback: [{
+            id: 0,
+            analysis: null,
+            suggestions: ["Upload your next artwork to see how your style evolves!"],
+            createdAt: new Date()
+          }],
+          analysisError: error instanceof Error ? error.message : "Unknown error during analysis"
         });
       }
     } catch (error) {
-      const err = error instanceof Error ? error : new Error("Unknown error");
-      console.error("Error in artwork upload:", {
-        message: err.message,
-        stack: err.stack,
-        userId: req.user?.id,
-        hasFile: !!req.file,
-      });
+      console.error("Error in artwork upload:", error);
       res.status(500).json({
         error: "Error uploading artwork",
-        details: err.message,
+        details: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });

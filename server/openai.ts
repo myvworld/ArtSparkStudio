@@ -28,7 +28,7 @@ export async function initializeOpenAI(): Promise<void> {
     // Verify the API key by making a simple API call
     console.log("Verifying OpenAI API key...");
     const testResponse = await client.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: "gpt-4-vision-preview",
       messages: [{ role: "system", content: "API key verification test" }],
       max_tokens: 5
     });
@@ -96,26 +96,43 @@ export async function analyzeArtwork(
       isValid: isValidBase64(base64Image)
     });
 
-    console.log("Preparing OpenAI vision request");
-
-    // Validate request parameters before making API call
-    if (!title.trim()) {
-      throw new Error("Title is required for analysis");
-    }
-
-    const validModel = "gpt-4-turbo";
-    console.log('Preparing API request:', {
-      model: validModel,
-      imageSize: base64Image.length,
-      hasGoals: !!goals
-    });
+    const systemPrompt = `You are an expert art critic and educator. Analyze the artwork and provide detailed feedback in the following JSON format:
+{
+  "style": {
+    "current": "Brief description of current style",
+    "influences": ["List of artistic influences"],
+    "similarArtists": ["List of similar artists"],
+    "period": "Art historical period",
+    "movement": "Art movement"
+  },
+  "composition": {
+    "structure": "Analysis of compositional structure",
+    "balance": "Analysis of visual balance",
+    "colorTheory": "Analysis of color usage",
+    "perspective": "Analysis of perspective",
+    "focusPoints": ["List of focal points"],
+    "dynamicElements": ["List of dynamic elements"]
+  },
+  "technique": {
+    "medium": "Identified medium used",
+    "execution": "Analysis of technical execution",
+    "skillLevel": "Beginner/Intermediate/Advanced",
+    "uniqueApproaches": ["List of unique technical approaches"],
+    "materialUsage": "Analysis of material handling"
+  },
+  "strengths": ["List of artistic strengths"],
+  "improvements": ["Areas for improvement"],
+  "detailedFeedback": "Comprehensive analysis",
+  "technicalSuggestions": ["Specific technical suggestions"],
+  "learningResources": ["Recommended learning resources"]
+}`;
 
     const response = await openai.chat.completions.create({
-      model: validModel,
+      model: "gpt-4-vision-preview",
       messages: [
         {
           role: "system",
-          content: "You are an expert art critic and educator. Analyze the artwork and provide detailed feedback formatted as a JSON object that matches the ArtAnalysis interface. Include comprehensive analysis of style, composition, technique, strengths, and areas for improvement."
+          content: systemPrompt
         },
         {
           role: "user",
@@ -133,7 +150,7 @@ export async function analyzeArtwork(
           ]
         }
       ],
-      max_tokens: 2000,
+      max_tokens: 4000,
       temperature: 0.7,
       response_format: { type: "json_object" }
     });
@@ -144,59 +161,48 @@ export async function analyzeArtwork(
       throw new Error("Invalid response format from OpenAI API");
     }
 
-    if (!response.choices[0]?.message?.content) {
-      console.log("Empty response from OpenAI");
-      throw new Error("Empty response from OpenAI");
-    }
-
     console.log("Successfully received OpenAI response");
-    let analysis;
+    let analysis: ArtAnalysis;
     try {
-      analysis = JSON.parse(response.choices[0].message.content);
+      const parsedResponse = JSON.parse(response.choices[0].message.content);
+
+      // Structure the response to match our ArtAnalysis type
+      analysis = {
+        style: {
+          current: parsedResponse.style?.current || "Style analysis unavailable",
+          influences: parsedResponse.style?.influences || [],
+          similarArtists: parsedResponse.style?.similarArtists || [],
+          period: parsedResponse.style?.period || "Period unknown",
+          movement: parsedResponse.style?.movement || "Movement unknown"
+        },
+        composition: {
+          structure: parsedResponse.composition?.structure || "Structure analysis unavailable",
+          balance: parsedResponse.composition?.balance || "Balance analysis unavailable",
+          colorTheory: parsedResponse.composition?.colorTheory || "Color theory analysis unavailable",
+          perspective: parsedResponse.composition?.perspective || "Perspective analysis unavailable",
+          focusPoints: parsedResponse.composition?.focusPoints || [],
+          dynamicElements: parsedResponse.composition?.dynamicElements || []
+        },
+        technique: {
+          medium: parsedResponse.technique?.medium || "Medium analysis unavailable",
+          execution: parsedResponse.technique?.execution || "Execution analysis unavailable",
+          skillLevel: parsedResponse.technique?.skillLevel || "Skill level analysis unavailable",
+          uniqueApproaches: parsedResponse.technique?.uniqueApproaches || [],
+          materialUsage: parsedResponse.technique?.materialUsage || "Material usage analysis unavailable"
+        },
+        strengths: parsedResponse.strengths || [],
+        improvements: parsedResponse.improvements || [],
+        detailedFeedback: parsedResponse.detailedFeedback || "Detailed feedback unavailable",
+        technicalSuggestions: parsedResponse.technicalSuggestions || [],
+        learningResources: parsedResponse.learningResources || []
+      };
     } catch (error) {
       console.error("Failed to parse OpenAI response:", error);
       throw new Error("Invalid response format from OpenAI");
     }
 
-    // Ensure the response matches our interface structure
-    // Ensure suggestions exist before creating analysis
-    if (!analysis.suggestions || !Array.isArray(analysis.suggestions)) {
-      analysis.suggestions = ["No specific suggestions available"];
-    }
-    
-    const structuredAnalysis: ArtAnalysis = {
-      style: {
-        current: analysis.style?.current || "Style analysis unavailable",
-        influences: analysis.style?.influences || [],
-        similarArtists: analysis.style?.similarArtists || [],
-        period: analysis.style?.period || "Period unknown",
-        movement: analysis.style?.movement || "Movement unknown"
-      },
-      composition: {
-        structure: analysis.composition?.structure || "Structure analysis unavailable",
-        balance: analysis.composition?.balance || "Balance analysis unavailable",
-        colorTheory: analysis.composition?.colorTheory || "Color theory analysis unavailable",
-        perspective: analysis.composition?.perspective || "Perspective analysis unavailable",
-        focusPoints: analysis.composition?.focusPoints || [],
-        dynamicElements: analysis.composition?.dynamicElements || []
-      },
-      technique: {
-        medium: analysis.technique?.medium || "Medium analysis unavailable",
-        execution: analysis.technique?.execution || "Execution analysis unavailable",
-        skillLevel: analysis.technique?.skillLevel || "Skill level analysis unavailable",
-        uniqueApproaches: analysis.technique?.uniqueApproaches || [],
-        materialUsage: analysis.technique?.materialUsage || "Material usage analysis unavailable"
-      },
-      strengths: analysis.strengths || [],
-      improvements: analysis.improvements || [],
-      detailedFeedback: analysis.detailedFeedback || "Detailed feedback unavailable",
-      technicalSuggestions: analysis.technicalSuggestions || [],
-      learningResources: analysis.learningResources || [],
-      suggestions: analysis.suggestions || ["No specific suggestions available"]
-    };
-
     console.log("Analysis structured successfully");
-    return structuredAnalysis;
+    return analysis;
   } catch (error: any) {
     console.error("Artwork analysis failed:", {
       error: error.message,
