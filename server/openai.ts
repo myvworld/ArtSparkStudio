@@ -97,7 +97,7 @@ export async function analyzeArtwork(
     "materialUsage": "Analyze material handling"
   },
   "strengths": ["List specific artistic strengths"],
-  "improvements": ["Suggest specific areas for improvement"],
+  "improvements": ["List specific areas for improvement"],
   "detailedFeedback": "Comprehensive analysis and recommendations",
   "technicalSuggestions": ["Specific technical improvement suggestions"],
   "learningResources": ["Recommended resources for improvement"]
@@ -147,26 +147,28 @@ export async function analyzeArtwork(
         hasTechnique: !!parsedResponse.technique
       });
 
+      // Ensure we return a properly formatted analysis object
       const analysis: ArtAnalysis = {
         style: {
           current: parsedResponse.style?.current || "Style analysis unavailable",
           influences: Array.isArray(parsedResponse.style?.influences) ? parsedResponse.style.influences : [],
           similarArtists: Array.isArray(parsedResponse.style?.similarArtists) ? parsedResponse.style.similarArtists : [],
-          period: parsedResponse.style?.period,
-          movement: parsedResponse.style?.movement
+          period: parsedResponse.style?.period || undefined,
+          movement: parsedResponse.style?.movement || undefined
         },
         composition: {
           structure: parsedResponse.composition?.structure || "Structure analysis unavailable",
           balance: parsedResponse.composition?.balance || "Balance analysis unavailable",
           colorTheory: parsedResponse.composition?.colorTheory || "Color theory analysis unavailable",
-          perspective: parsedResponse.composition?.perspective,
+          perspective: parsedResponse.composition?.perspective || undefined,
           focusPoints: Array.isArray(parsedResponse.composition?.focusPoints) ? parsedResponse.composition.focusPoints : [],
           dynamicElements: Array.isArray(parsedResponse.composition?.dynamicElements) ? parsedResponse.composition.dynamicElements : []
         },
         technique: {
           medium: parsedResponse.technique?.medium || "Medium analysis unavailable",
           execution: parsedResponse.technique?.execution || "Execution analysis unavailable",
-          skillLevel: parsedResponse.technique?.skillLevel as "Beginner" | "Intermediate" | "Advanced" || "Beginner",
+          skillLevel: (parsedResponse.technique?.skillLevel === "Advanced" ? "Advanced" :
+                      parsedResponse.technique?.skillLevel === "Intermediate" ? "Intermediate" : "Beginner"),
           uniqueApproaches: Array.isArray(parsedResponse.technique?.uniqueApproaches) ? parsedResponse.technique.uniqueApproaches : [],
           materialUsage: parsedResponse.technique?.materialUsage || "Material usage analysis unavailable"
         },
@@ -175,7 +177,7 @@ export async function analyzeArtwork(
         detailedFeedback: parsedResponse.detailedFeedback || "Detailed feedback unavailable",
         technicalSuggestions: Array.isArray(parsedResponse.technicalSuggestions) ? parsedResponse.technicalSuggestions : [],
         learningResources: Array.isArray(parsedResponse.learningResources) ? parsedResponse.learningResources : [],
-        suggestions: Array.isArray(parsedResponse.technicalSuggestions) ? parsedResponse.technicalSuggestions : ["No specific suggestions available"]
+        suggestions: Array.isArray(parsedResponse.technicalSuggestions) ? parsedResponse.technicalSuggestions : ["Upload your next artwork to see how your style evolves!"]
       };
 
       console.log("Analysis structured successfully:", {
