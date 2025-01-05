@@ -53,8 +53,8 @@ export function registerRoutes(app: Express): Server {
     next();
   });
 
-  // Add enhanced error handling and logging for artwork analysis
-  app.post("/api/artwork", upload.single("image"), async (req, res) => {
+  // Update the artwork upload endpoint with better error handling
+app.post("/api/artwork", upload.single("image"), async (req, res) => {
     try {
       console.log("Starting artwork upload process");
       console.log("Request details:", {
@@ -122,7 +122,7 @@ export function registerRoutes(app: Express): Server {
           hasAnalysis: !!analysis,
           analysisType: typeof analysis,
           analysisKeys: analysis ? Object.keys(analysis) : [],
-          analysisJson: JSON.stringify(analysis)
+          analysisJson: JSON.stringify(analysis).substring(0, 100) + "..." // Log truncated analysis
         });
 
         if (!analysis) {
@@ -132,16 +132,25 @@ export function registerRoutes(app: Express): Server {
         // Create feedback entry with the structured analysis
         console.log("Preparing to store analysis in database");
         try {
+          // Log the actual values being inserted
+          const feedbackData = {
+            artworkId: artwork.id,
+            analysis: analysis,
+            suggestions: [
+              "Here's your artwork analysis! Upload another piece to track your progress.",
+              ...(analysis.technicalSuggestions || [])
+            ]
+          };
+
+          console.log("Feedback data to be inserted:", {
+            artworkId: feedbackData.artworkId,
+            analysisType: typeof feedbackData.analysis,
+            suggestionCount: feedbackData.suggestions.length,
+          });
+
           const [feedbackEntry] = await db
             .insert(feedback)
-            .values({
-              artworkId: artwork.id,
-              analysis: analysis as any, // Type assertion needed due to JSON structure
-              suggestions: [
-                "Here's your artwork analysis! Upload another piece to track your progress.",
-                ...(analysis.technicalSuggestions || [])
-              ]
-            })
+            .values(feedbackData)
             .returning();
 
           console.log("Feedback stored successfully:", {
@@ -165,7 +174,8 @@ export function registerRoutes(app: Express): Server {
           console.error("Database error storing feedback:", {
             error: dbError instanceof Error ? dbError.message : dbError,
             sql: dbError?.query,
-            params: dbError?.params
+            params: dbError?.params,
+            stack: dbError instanceof Error ? dbError.stack : undefined
           });
           throw dbError;
         }
@@ -198,7 +208,7 @@ export function registerRoutes(app: Express): Server {
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
-  });
+});
 
   // Add user's rating to gallery response
   app.get("/api/gallery", async (req, res) => {
@@ -1981,8 +1991,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Only expose necessary config data to the client
-      res.json({
-        basicPriceId: SUBSCRIPTION_PRICES.basic,
+      res.json({        basicPriceId: SUBSCRIPTION_PRICES.basic,
         proPriceId: SUBSCRIPTION_PRICES.pro,
         mode: "live",
       });
