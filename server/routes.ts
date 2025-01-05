@@ -47,168 +47,83 @@ function requireAdmin(req: any, res: any, next: any) {
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
-  // Add logging middleware
+  // Basic request logging
   app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
     next();
   });
 
-  // Update the artwork upload endpoint with better error handling
-app.post("/api/artwork", upload.single("image"), async (req, res) => {
+  // Simplified artwork upload endpoint with working feedback storage
+  app.post("/api/artwork", upload.single("image"), async (req, res) => {
     try {
-      console.log("Starting artwork upload process");
-      console.log("Request details:", {
-        hasFile: !!req.file,
-        body: req.body,
-        userId: req.user?.id
-      });
-
       if (!req.isAuthenticated()) {
-        console.log("Authentication check failed");
         return res.status(401).json({ error: "Not authenticated" });
       }
 
       if (!req.file) {
-        console.log("No image file provided in request");
         return res.status(400).json({ error: "No image file provided" });
       }
 
       const { title, goals } = req.body;
       if (!title) {
-        console.log("Title missing in request");
         return res.status(400).json({ error: "Title is required" });
       }
 
-      console.log(`Processing artwork upload: "${title}" by user ${req.user.id}`);
-
-      // Convert and validate image
+      // Convert image to base64
       const imageBase64 = req.file.buffer.toString("base64");
       const imageUrl = `data:${req.file.mimetype};base64,${imageBase64}`;
 
-      console.log("Attempting to create artwork record");
-      // First create the artwork record
-      let artwork;
-      try {
-        const [newArtwork] = await db
-          .insert(artworks)
-          .values({
-            userId: req.user.id,
-            title,
-            goals: goals || null,
-            imageUrl,
-            isPublic: false,
-          })
-          .returning();
-        artwork = newArtwork;
-        console.log("Artwork record created successfully:", {
+      // Create artwork record first
+      const [artwork] = await db
+        .insert(artworks)
+        .values({
+          userId: req.user.id,
+          title,
+          goals: goals || null,
+          imageUrl,
+          isPublic: false,
+        })
+        .returning();
+
+      // Analyze the artwork
+      const analysis = await analyzeArtwork(imageBase64, title, goals);
+
+      if (!analysis) {
+        return res.status(500).json({ 
+          error: "Failed to analyze artwork",
+          artwork 
+        });
+      }
+
+      // Store feedback with proper JSON structure
+      const [feedbackEntry] = await db
+        .insert(feedback)
+        .values({
           artworkId: artwork.id,
-          title: artwork.title
-        });
-      } catch (dbError) {
-        console.error("Database error creating artwork:", {
-          error: dbError instanceof Error ? dbError.message : dbError,
-          sql: dbError?.query,
-          params: dbError?.params
-        });
-        throw dbError;
-      }
+          analysis: analysis,
+          suggestions: analysis.technicalSuggestions || [],
+        })
+        .returning();
 
-      // Then analyze the artwork
-      try {
-        console.log("Starting OpenAI analysis");
-        const analysis = await analyzeArtwork(imageBase64, title, goals);
-
-        console.log("Analysis received from OpenAI:", {
-          hasAnalysis: !!analysis,
-          analysisType: typeof analysis,
-          analysisKeys: analysis ? Object.keys(analysis) : [],
-          analysisJson: JSON.stringify(analysis).substring(0, 100) + "..." // Log truncated analysis
-        });
-
-        if (!analysis) {
-          throw new Error("Analysis failed - no result returned");
-        }
-
-        // Create feedback entry with the structured analysis
-        console.log("Preparing to store analysis in database");
-        try {
-          // Log the actual values being inserted
-          const feedbackData = {
-            artworkId: artwork.id,
-            analysis: analysis,
-            suggestions: [
-              "Here's your artwork analysis! Upload another piece to track your progress.",
-              ...(analysis.technicalSuggestions || [])
-            ]
-          };
-
-          console.log("Feedback data to be inserted:", {
-            artworkId: feedbackData.artworkId,
-            analysisType: typeof feedbackData.analysis,
-            suggestionCount: feedbackData.suggestions.length,
-          });
-
-          const [feedbackEntry] = await db
-            .insert(feedback)
-            .values(feedbackData)
-            .returning();
-
-          console.log("Feedback stored successfully:", {
-            feedbackId: feedbackEntry.id,
-            artworkId: artwork.id,
-            hasAnalysis: !!feedbackEntry.analysis,
-            suggestions: feedbackEntry.suggestions.length
-          });
-
-          // Return the complete artwork with feedback
-          res.json({
-            ...artwork,
-            feedback: [{
-              id: feedbackEntry.id,
-              analysis: feedbackEntry.analysis,
-              suggestions: feedbackEntry.suggestions,
-              createdAt: feedbackEntry.createdAt
-            }]
-          });
-        } catch (dbError) {
-          console.error("Database error storing feedback:", {
-            error: dbError instanceof Error ? dbError.message : dbError,
-            sql: dbError?.query,
-            params: dbError?.params,
-            stack: dbError instanceof Error ? dbError.stack : undefined
-          });
-          throw dbError;
-        }
-      } catch (error) {
-        console.error("Error during artwork analysis:", {
-          error: error instanceof Error ? error.message : "Unknown error",
-          stack: error instanceof Error ? error.stack : undefined,
-          artworkId: artwork.id
-        });
-
-        // Still return the artwork even if analysis fails
-        res.json({
-          ...artwork,
-          feedback: [{
-            id: 0,
-            analysis: null,
-            suggestions: ["Upload your next artwork to see how your style evolves!"],
-            createdAt: new Date()
-          }],
-          analysisError: error instanceof Error ? error.message : "Unknown error during analysis"
-        });
-      }
-    } catch (error) {
-      console.error("Error in artwork upload:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined
+      // Return complete artwork with feedback
+      res.json({
+        ...artwork,
+        feedback: [{
+          id: feedbackEntry.id,
+          analysis: feedbackEntry.analysis,
+          suggestions: feedbackEntry.suggestions,
+          createdAt: feedbackEntry.createdAt
+        }]
       });
+
+    } catch (error) {
+      console.error("Error uploading artwork:", error);
       res.status(500).json({
         error: "Error uploading artwork",
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
-});
+  });
 
   // Add user's rating to gallery response
   app.get("/api/gallery", async (req, res) => {
@@ -1073,7 +988,7 @@ app.post("/api/artwork", upload.single("image"), async (req, res) => {
           imageUrl: artworks.imageUrl,
           username: users.username,
         })
-        .from(artworks)
+                .from(artworks)
         .innerJoin(users, eq(users.id, artworks.userId))
         .where(eq(artworks.isPublic, true))
         .orderBy(sql`RANDOM()`)
@@ -1991,7 +1906,8 @@ app.post("/api/artwork", upload.single("image"), async (req, res) => {
       }
 
       // Only expose necessary config data to the client
-      res.json({        basicPriceId: SUBSCRIPTION_PRICES.basic,
+      res.json({
+        basicPriceId: SUBSCRIPTION_PRICES.basic,
         proPriceId: SUBSCRIPTION_PRICES.pro,
         mode: "live",
       });
