@@ -45,7 +45,7 @@ export function registerRoutes(app: Express): Server {
     next();
   });
 
-  // Basic artwork upload endpoint with minimal feedback storage
+  // Basic artwork upload endpoint with basic feedback
   app.post("/api/artwork", upload.single("image"), async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
@@ -84,12 +84,21 @@ export function registerRoutes(app: Express): Server {
         return res.status(500).json({ error: "Failed to analyze artwork" });
       }
 
-      // Store feedback using simple string storage
+      // Store feedback with basic format
+      const basicAnalysis = {
+        style: analysis.style.current,
+        composition: analysis.composition.structure,
+        technique: analysis.technique.medium,
+        strengths: analysis.strengths,
+        improvements: analysis.improvements,
+        detailedFeedback: analysis.detailedFeedback
+      };
+
       const [feedbackEntry] = await db
         .insert(feedback)
         .values({
           artworkId: artwork.id,
-          analysis: JSON.stringify(analysis),
+          analysis: JSON.stringify(basicAnalysis), //Stringified for DB storage
           suggestions: ["Here's your artwork analysis! Upload another piece to track your progress."]
         })
         .returning();
@@ -98,7 +107,7 @@ export function registerRoutes(app: Express): Server {
         ...artwork,
         feedback: [{
           id: feedbackEntry.id,
-          analysis: analysis,
+          analysis: basicAnalysis,
           suggestions: ["Here's your artwork analysis! Upload another piece to track your progress."],
           createdAt: feedbackEntry.createdAt
         }]
